@@ -6,6 +6,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Badge, IdeaVerdictBadge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { confidenceLabels, ideaDimensionLabels, ideaVerdictLabels, label } from "@/lib/skills/glossary";
 import type { Idea, IdeaAssessment, IdeaCanvas } from "@/lib/types/domain";
@@ -226,7 +227,9 @@ function DimensionCard({
               <p className="mb-1 text-xs font-semibold text-ink-500">{t(copy.openQuestions, locale)}</p>
               <ul className="list-disc ps-4 text-ink-700">
                 {dim.openQuestions.map((q, i) => (
-                  <li key={i}>{q}</li>
+                  <li key={i}>
+                    <Markdown>{q}</Markdown>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -287,7 +290,9 @@ export function ScorecardSummary({
           </div>
           <ul className="list-disc ps-5 text-sm text-ink-700">
             {assessment.topReasons.map((r, i) => (
-              <li key={i}>{r}</li>
+              <li key={i}>
+                <Markdown>{r}</Markdown>
+              </li>
             ))}
           </ul>
           {assessment.hardRuleTriggered && (
@@ -339,7 +344,9 @@ export function ScorecardExtras({ assessment }: { assessment: IdeaAssessment }) 
           <CardBody>
             <ul className="list-disc ps-5 text-sm text-ink-700">
               {assessment.pivotReframings.map((r, i) => (
-                <li key={i}>{r}</li>
+                <li key={i}>
+                  <Markdown>{r}</Markdown>
+                </li>
               ))}
             </ul>
           </CardBody>
@@ -356,7 +363,9 @@ export function ScorecardExtras({ assessment }: { assessment: IdeaAssessment }) 
           ) : (
             <ul className="list-disc ps-5 text-sm text-ink-700">
               {assessment.assumptionsToVerify.map((a, i) => (
-                <li key={i}>{a}</li>
+                <li key={i}>
+                  <Markdown>{a}</Markdown>
+                </li>
               ))}
             </ul>
           )}

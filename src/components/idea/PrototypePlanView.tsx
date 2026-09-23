@@ -2,6 +2,7 @@
 
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { prototypeCatalogue } from "@/lib/skills/prototypeCatalogue";
 import { cn } from "@/lib/utils";
@@ -36,33 +37,37 @@ function OptionCard({ option, title, locale }: { option: PrototypeOption; title:
         <CardTitle>{title}</CardTitle>
       </CardHeader>
       <CardBody className="space-y-2 text-sm">
-        <p className="font-medium text-ink-900">{option.type}</p>
+        <Markdown className="font-medium text-ink-900">{option.type}</Markdown>
         <p className="text-ink-600">
           <span className="font-medium">{t(copy.tools, locale)}: </span>
           {option.tools.join(", ")}
         </p>
         <ul className="list-disc ps-5 text-ink-700">
           {option.buildItems.map((b, i) => (
-            <li key={i}>{b}</li>
+            <li key={i}>
+              <Markdown>{b}</Markdown>
+            </li>
           ))}
         </ul>
         <p className="text-ink-600">
           {t(copy.effort, locale)}: {option.effortTeamDays.min}-{option.effortTeamDays.max} {t(copy.teamDays, locale)}
         </p>
-        <div className="rounded-lg bg-muted p-3">
-          <p>
-            <span className="font-medium">{t(copy.test, locale)}: </span>
-            {option.test.protocol}
-          </p>
+        <div className="space-y-2 rounded-lg bg-muted p-3">
+          <div>
+            <p className="font-medium">{t(copy.test, locale)}:</p>
+            <Markdown>{option.test.protocol}</Markdown>
+          </div>
           <p>
             {t(copy.users, locale)}: {option.test.users} · {t(copy.metric, locale)}: {option.test.metric}
           </p>
-          <p>
-            {t(copy.threshold, locale)}: {option.test.successThreshold}
-          </p>
-          <p className="text-ink-500">
-            {t(copy.ifMissed, locale)}: {option.test.ifMissed}
-          </p>
+          <div>
+            <p className="font-medium">{t(copy.threshold, locale)}:</p>
+            <Markdown>{option.test.successThreshold}</Markdown>
+          </div>
+          <div className="text-ink-500">
+            <p className="font-medium">{t(copy.ifMissed, locale)}:</p>
+            <Markdown className="text-ink-500">{option.test.ifMissed}</Markdown>
+          </div>
         </div>
       </CardBody>
     </Card>
@@ -102,14 +107,15 @@ export function PrototypePlanView({ plan }: { plan: PrototypePlan }) {
       </Card>
 
       <Card>
-        <CardBody>
-          <p className="text-sm">
-            <span className="font-semibold text-ink-800">{t(copy.riskiest, locale)}: </span>
-            {plan.riskiestAssumption}
-          </p>
-          <p className="mt-2 text-sm text-ink-500">
-            {t(copy.why, locale)}: {plan.whyNotHigherFidelity}
-          </p>
+        <CardBody className="space-y-3">
+          <div>
+            <p className="text-sm font-semibold text-ink-800">{t(copy.riskiest, locale)}:</p>
+            <Markdown>{plan.riskiestAssumption}</Markdown>
+          </div>
+          <div>
+            <p className="text-sm font-medium text-ink-500">{t(copy.why, locale)}:</p>
+            <Markdown className="text-ink-500">{plan.whyNotHigherFidelity}</Markdown>
+          </div>
         </CardBody>
       </Card>
 

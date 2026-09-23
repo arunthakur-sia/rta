@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { FollowUpCheckInOutput } from "@/lib/schemas/idea";
 
@@ -55,16 +56,18 @@ export function FollowUpPanel({ ideaId }: { ideaId: string }) {
           {t(copy.submit, locale)}
         </Button>
         {result && (
-          <div className="rounded-lg bg-muted p-3 text-sm text-ink-700">
-            <p>{result.progressAssessment}</p>
+          <div className="space-y-2 rounded-lg bg-muted p-3 text-sm text-ink-700">
+            <Markdown>{result.progressAssessment}</Markdown>
             {result.riskiestAssumptionChanged && (
-              <p className="mt-1 text-accent-700">
-                {t(copy.changed, locale)}: {result.updatedRiskiestAssumption}
-              </p>
+              <div className="text-accent-700">
+                <p className="font-medium">{t(copy.changed, locale)}:</p>
+                <Markdown className="text-accent-700">{result.updatedRiskiestAssumption ?? ""}</Markdown>
+              </div>
             )}
-            <p className="mt-1 font-medium">
-              {t(copy.recommendation, locale)}: {result.recommendation}
-            </p>
+            <div>
+              <p className="font-medium">{t(copy.recommendation, locale)}:</p>
+              <Markdown>{result.recommendation}</Markdown>
+            </div>
           </div>
         )}
       </CardBody>

@@ -102,7 +102,7 @@ export function MockJuryPanel({ pitchId, interrupt, log }: { pitchId: string; in
           </CardHeader>
           <CardBody className="space-y-3">
             <ProgressBar value={interrupt.turnNumber} max={interrupt.totalTurns} label={`${interrupt.turnNumber}/${interrupt.totalTurns}`} />
-            <p className="text-base font-medium text-ink-900">{interrupt.question}</p>
+            <Markdown className="text-base font-medium text-ink-900">{interrupt.question}</Markdown>
             <CountdownTimer key={interrupt.turnId} locale={locale} />
             {submitting ? (
               <div className="space-y-2 rounded-lg bg-accent-100 px-3 py-3 text-sm text-accent-700">
@@ -140,7 +140,7 @@ export function MockJuryPanel({ pitchId, interrupt, log }: { pitchId: string; in
                       <Badge>{t(copy.questionLabel, locale)}</Badge>
                       {persona && <span className="text-xs text-ink-400">{persona.name}</span>}
                     </div>
-                    <p className="font-medium text-ink-900">{turn.question}</p>
+                    <Markdown className="font-medium text-ink-900">{turn.question}</Markdown>
                   </div>
 
                   {turn.answer && (

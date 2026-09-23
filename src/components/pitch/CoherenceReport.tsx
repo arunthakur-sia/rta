@@ -2,6 +2,7 @@
 
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { coherenceStatusLabels, label } from "@/lib/skills/glossary";
 import type { CoherenceRow } from "@/lib/types/domain";
@@ -50,7 +51,9 @@ export function CoherenceReport({ rows }: { rows: CoherenceRow[] }) {
           {rows.map((row, i) => (
             <tr key={i} className="border-b border-border align-top">
               <td className="p-2 font-medium text-ink-800">{row.slide + 1}</td>
-              <td className="p-2 text-ink-700">{row.claim}</td>
+              <td className="p-2 text-ink-700">
+                <Markdown>{row.claim}</Markdown>
+              </td>
               <td className="p-2 text-ink-600">{row.recordRef}</td>
               <td className="p-2">
                 <Badge tone={statusTone[row.status]}>{label(coherenceStatusLabels[row.status], locale)}</Badge>

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Spinner } from "@/components/ui/Spinner";
 import { CyclingStatus } from "@/components/ui/CyclingStatus";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { ideaDimensionLabels, label } from "@/lib/skills/glossary";
 import type { ClarifyInterruptPayload } from "@/lib/agents/idea-validation/nodes";
@@ -105,12 +106,12 @@ export function ClarifySessionPanel({ ideaId, interrupt }: { ideaId: string; int
           </span>
         )}
 
-        <p className="text-base font-medium text-ink-900">{interrupt.question}</p>
+        <Markdown className="text-base font-medium text-ink-900">{interrupt.question}</Markdown>
 
         <button type="button" className="text-xs text-ink-500 underline" onClick={() => setShowWhy((s) => !s)}>
           {t(copy.why, locale)}
         </button>
-        {showWhy && <p className="rounded-lg bg-muted px-3 py-2 text-sm text-ink-600">{interrupt.whyWeAsk}</p>}
+        {showWhy && <Markdown className="rounded-lg bg-muted px-3 py-2 text-ink-600">{interrupt.whyWeAsk}</Markdown>}
 
         {submitting ? (
           <div className="flex items-start gap-2 rounded-lg bg-accent-100 px-3 py-3 text-sm text-accent-700">

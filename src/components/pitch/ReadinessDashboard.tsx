@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { PitchVerdictBadge } from "@/components/ui/Badge";
 import { ScoreGauge } from "@/components/ui/ScoreGauge";
 import { DimensionBars } from "@/components/ui/DimensionBars";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { pitchDimensionLabels, pitchVerdictLabels, label } from "@/lib/skills/glossary";
 import { pitchVerdictThresholds } from "@/lib/skills/pitchRubric";
@@ -83,7 +84,9 @@ export function ReadinessDashboard({ run, allRuns }: { run: ScoredPitchRun; allR
                   })
                 }
               />
-              <span className={done.has(a.priority) ? "text-ink-400 line-through" : "text-ink-800"}>{a.text}</span>
+              <Markdown className={`flex-1 ${done.has(a.priority) ? "text-ink-400 line-through" : "text-ink-800"}`}>
+                {a.text}
+              </Markdown>
             </label>
           ))}
         </CardBody>
