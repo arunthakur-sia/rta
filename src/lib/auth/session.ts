@@ -47,3 +47,10 @@ export async function requireUser(): Promise<User> {
   if (!user) redirect("/login");
   return user;
 }
+
+/** For Server Components: redirects non-admins away from admin-only pages (e.g. the usage dashboard). */
+export async function requireAdmin(): Promise<User> {
+  const user = await requireUser();
+  if (!user.isAdmin) redirect("/workspace");
+  return user;
+}

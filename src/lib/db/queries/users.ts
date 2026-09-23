@@ -8,18 +8,21 @@ interface UserRow {
   email: string;
   created_at: string;
   password_hash: string | null;
+  is_admin: boolean;
 }
 
 function rowToUser(row: UserRow): User {
-  return { id: row.id, name: row.name, email: row.email, createdAt: row.created_at };
+  return { id: row.id, name: row.name, email: row.email, isAdmin: row.is_admin, createdAt: row.created_at };
 }
 
-// Demo-only password (override with DEMO_ACCOUNT_PASSWORD if you want
-// something else locally). Real SSO/RTA-intranet identity is out of scope
-// for this build — see README.
+// Demo-only passwords (override with DEMO_ACCOUNT_PASSWORD /
+// ADMIN_ACCOUNT_PASSWORD if you want something else locally). Real
+// SSO/RTA-intranet identity is out of scope for this build — see README.
 const DEMO_PASSWORD = process.env.DEMO_ACCOUNT_PASSWORD ?? "RtaDemo#2026";
+const ADMIN_PASSWORD = process.env.ADMIN_ACCOUNT_PASSWORD ?? "RtaAdmin#2026";
 
 const DEMO_USER = { name: "Amina Al Marri", email: "participant@pilot.rta.gov.ae" };
+const ADMIN_USER = { name: "RTA Program Admin", email: "admin@pilot.rta.gov.ae" };
 
 let seedChecked = false;
 
@@ -47,6 +50,24 @@ export async function ensureSeeded(): Promise<void> {
       await Promise.all(toBackfill.map((u) => db.from("users").update({ password_hash: passwordHash }).eq("id", u.id)));
     }
   }
+
+  // The admin account is seeded independently of the count check above —
+  // it needs to exist even on a database that already had participant
+  // rows before the token-usage dashboard (see 0006) was added.
+  const { data: existingAdmin, error: adminLookupError } = await db
+    .from("users")
+    .select("id")
+    .ilike("email", ADMIN_USER.email)
+    .maybeSingle();
+  if (adminLookupError) throw new Error(`Supabase error: ${adminLookupError.message}`);
+  if (!existingAdmin) {
+    const passwordHash = await hashPassword(ADMIN_PASSWORD);
+    const { error: insertAdminError } = await db
+      .from("users")
+      .insert({ name: ADMIN_USER.name, email: ADMIN_USER.email, password_hash: passwordHash, is_admin: true });
+    if (insertAdminError) throw new Error(`Supabase error: ${insertAdminError.message}`);
+  }
+
   seedChecked = true;
 }
 

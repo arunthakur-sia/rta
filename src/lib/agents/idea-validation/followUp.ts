@@ -28,5 +28,6 @@ Current stage: FOLLOW-UP (phase 4, weekly check-in). The team already has a prot
     ],
     schema: followUpCheckInSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: idea.ownerId, ideaId: idea.id, stage: "idea.follow_up" },
   });
 }

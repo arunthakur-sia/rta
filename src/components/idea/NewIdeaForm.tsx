@@ -11,7 +11,7 @@ import type { IdeaCanvasAutofillOutput } from "@/lib/schemas/idea";
 const copy = {
   title: { en: "New idea", ar: "فكرة جديدة" },
   ideaTitle: { en: "Idea name", ar: "اسم الفكرة" },
-  autofillLabel: { en: "Autofill from a document (.docx, .pdf, or an image)", ar: "تعبئة تلقائية من مستند (.docx أو .pdf أو صورة)" },
+  autofillLabel: { en: "Autofill from a document (.docx, .pptx, .pdf, or an image)", ar: "تعبئة تلقائية من مستند (.docx أو .pptx أو .pdf أو صورة)" },
   autofillButton: { en: "Autofill from document", ar: "تعبئة تلقائية من المستند" },
   autofilling: { en: "Reading document…", ar: "جارٍ قراءة المستند…" },
   autofillError: { en: "Couldn't read that file. You can still fill the form by hand.", ar: "تعذر قراءة الملف. يمكنك تعبئة النموذج يدويًا." },
@@ -157,7 +157,7 @@ export function NewIdeaForm() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".docx,.pdf,image/png,image/jpeg,image/webp"
+              accept=".docx,.pptx,.pdf,image/png,image/jpeg,image/webp"
               className="text-sm"
               onChange={(e) => {
                 const file = e.target.files?.[0];

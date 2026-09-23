@@ -15,6 +15,7 @@ export const common = {
   pitches: { en: "Pitches", ar: "العروض" },
   newIdea: { en: "New idea", ar: "فكرة جديدة" },
   dashboard: { en: "Dashboard", ar: "لوحة المعلومات" },
+  admin: { en: "Admin", ar: "الإدارة" },
 } as const;
 
 export function t(entry: { en: string; ar: string }, locale: Locale): string {

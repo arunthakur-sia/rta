@@ -65,6 +65,7 @@ export async function structureNode(state: PitchValidationStateType) {
     messages: [{ role: "user", content: `${deckContext(pitch)}\n\n${ideaRecordSummary(idea, assessment, plan)}` }],
     schema: structureOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.structure" },
   });
 
   // Reserve the run version here and upsert a first pass at it so the
@@ -101,6 +102,7 @@ export async function contentNode(state: PitchValidationStateType) {
     messages: [{ role: "user", content: `${deckContext(pitch)}\n\n${ideaRecordSummary(idea, assessment, plan)}` }],
     schema: contentOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.content" },
   });
   // The model doesn't return `resolved` — it's a participant-tracked flag,
   // not a model output — so default it here rather than leaving it undefined.
@@ -135,6 +137,7 @@ export async function coherenceNode(state: PitchValidationStateType) {
     messages: [{ role: "user", content: `${deckContext(pitch)}\n\n${ideaRecordSummary(idea, assessment, plan)}` }],
     schema: coherenceOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.coherence" },
   });
 
   await savePitchRun({
@@ -200,6 +203,7 @@ export async function mockJuryNode(state: PitchValidationStateType) {
       ],
       schema: mockJuryQuestionSchema,
       maxTokens: MAX_OUTPUT_TOKENS,
+      usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.mock_jury_question" },
     });
 
     turn = await addMockJuryQuestion(pitch.id, persona.id, generated.question, generated.weakPointRef);
@@ -240,7 +244,7 @@ export async function evaluateMockJuryAnswer(
   persona: JuryPersona,
   answer: string
 ) {
-  const { idea, assessment, plan } = await loadContext(pitchId);
+  const { pitch, idea, assessment, plan } = await loadContext(pitchId);
   const evaluation = await runStructured({
     model: FAST_MODEL,
     system: `${roleAndBoundaries(locale)}\n\nEvaluate the participant's answer to the mock jury question as the "${persona.name}" persona. Be direct about whether the answer is backed by evidence.`,
@@ -249,6 +253,7 @@ export async function evaluateMockJuryAnswer(
     ],
     schema: mockJuryEvaluationSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.mock_jury_evaluation" },
   });
 
   await answerMockJuryQuestion(turn.id, answer, evaluation.evaluation, evaluation.modelAnswer);
@@ -280,6 +285,7 @@ export async function readinessNode(state: PitchValidationStateType) {
     ],
     schema: readinessOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.readiness" },
   });
 
   const dimensions = result.dimensions as PitchDimensionRating[];

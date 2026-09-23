@@ -75,6 +75,21 @@ async function resolveSlideOrder(zip: JSZip): Promise<string[]> {
   return orderedPaths;
 }
 
+/**
+ * Flattens a parsed deck into a single text blob (slide title/body/notes,
+ * in presentation order) for callers that just want document text, e.g.
+ * the idea-canvas autofill flow — same shape as extractDocxText/extractPdfText.
+ */
+export async function extractPptxText(buffer: Buffer): Promise<string> {
+  const slides = await parsePptx(buffer);
+  return slides
+    .map((s, i) => {
+      const parts = [`Slide ${i + 1}: ${s.title}`.trim(), s.body, s.notes ? `Notes: ${s.notes}` : ""].filter(Boolean);
+      return parts.join("\n");
+    })
+    .join("\n\n");
+}
+
 export async function parsePptx(buffer: Buffer): Promise<RawParsedSlide[]> {
   const zip = await JSZip.loadAsync(buffer);
 

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getServerLocale } from "@/lib/i18n/locale.server";
 import { extractDocxText } from "@/lib/parsing/docx";
 import { extractPdfText } from "@/lib/parsing/pdf";
+import { extractPptxText } from "@/lib/parsing/pptx";
 import { autofillIdeaCanvas } from "@/lib/agents/idea-validation/autofill";
 
 const IMAGE_EXTENSIONS: Record<string, string> = {
@@ -30,14 +31,16 @@ export async function POST(request: Request) {
   try {
     let result;
     if (lower.endsWith(".pdf")) {
-      result = await autofillIdeaCanvas({ text: await extractPdfText(buffer), locale });
+      result = await autofillIdeaCanvas({ text: await extractPdfText(buffer), locale, userId: user.id });
     } else if (lower.endsWith(".docx")) {
-      result = await autofillIdeaCanvas({ text: await extractDocxText(buffer), locale });
+      result = await autofillIdeaCanvas({ text: await extractDocxText(buffer), locale, userId: user.id });
+    } else if (lower.endsWith(".pptx")) {
+      result = await autofillIdeaCanvas({ text: await extractPptxText(buffer), locale, userId: user.id });
     } else if (imageExt) {
       const mime = IMAGE_EXTENSIONS[imageExt];
-      result = await autofillIdeaCanvas({ imageDataUrl: `data:${mime};base64,${buffer.toString("base64")}`, locale });
+      result = await autofillIdeaCanvas({ imageDataUrl: `data:${mime};base64,${buffer.toString("base64")}`, locale, userId: user.id });
     } else {
-      return NextResponse.json({ error: "Unsupported file type — upload a .docx, .pdf, or image (.png/.jpg/.webp)." }, { status: 400 });
+      return NextResponse.json({ error: "Unsupported file type — upload a .docx, .pptx, .pdf, or image (.png/.jpg/.webp)." }, { status: 400 });
     }
     return NextResponse.json({ result });
   } catch (err) {

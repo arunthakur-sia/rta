@@ -72,6 +72,7 @@ Current stage: CLARIFY. Ask the single next most useful clarifying question, tar
       messages: [{ role: "user", content: ideaRecordContext(idea) }],
       schema: clarifyQuestionSchema,
       maxTokens: MAX_OUTPUT_TOKENS,
+      usage: { userId: idea.ownerId, ideaId: idea.id, stage: "idea.clarify" },
     });
 
     if (result.coverageComplete || !result.question) {
@@ -113,6 +114,7 @@ Current stage: ASSESS. Rate the idea on all five rubric dimensions. For each: gi
     messages: [{ role: "user", content: ideaRecordContext(idea) }],
     schema: ideaAssessmentModelOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: idea.ownerId, ideaId: idea.id, stage: "idea.assess" },
   });
 
   return { draftAssessment: result };
@@ -134,6 +136,7 @@ export async function critiqueNode(state: IdeaValidationStateType) {
     ],
     schema: critiqueOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: idea.ownerId, ideaId: idea.id, stage: "idea.critique" },
   });
 
   return { draftAssessment: result.correctedAssessment, criticalNotes: result.changesMade };
@@ -160,6 +163,7 @@ export async function verdictNode(state: IdeaValidationStateType) {
       ],
       schema: pivotReframingsSchema,
       maxTokens: MAX_OUTPUT_TOKENS,
+      usage: { userId: idea.ownerId, ideaId: idea.id, stage: "idea.pivot_reframe" },
     });
     pivotReframings = reframe.reframings;
   }
@@ -212,6 +216,7 @@ Current stage: PROTOTYPE_PLAN. Identify the riskiest assumption behind this idea
     ],
     schema: prototypePlanModelOutputSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: idea.ownerId, ideaId: idea.id, stage: "idea.prototype_plan" },
   });
 
   const plan: PrototypePlan = {

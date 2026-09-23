@@ -1,6 +1,3 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import path from "node:path";
 import { NextResponse } from "next/server";
 import { getPitchById, saveUploadedDeck, setPitchStage } from "@/lib/db/queries/pitches";
 import { parseDeck, UnsupportedDeckFormatError } from "@/lib/parsing/deckParser";
@@ -34,13 +31,7 @@ export async function POST(request: Request, { params }: Params) {
     throw err;
   }
 
-  const uploadsDir = path.join(process.cwd(), ".uploads", pitchId);
-  await mkdir(uploadsDir, { recursive: true });
-  const storedName = `${randomUUID()}-${file.name}`;
-  const storagePath = path.join(uploadsDir, storedName);
-  await writeFile(storagePath, buffer);
-
-  await saveUploadedDeck(pitchId, file.name, storagePath, slides, typeof script === "string" && script.trim() ? script.trim() : null);
+  await saveUploadedDeck(pitchId, file.name, slides, typeof script === "string" && script.trim() ? script.trim() : null);
   await setPitchStage(pitchId, "parse_check");
 
   return NextResponse.json({ pitch: await getPitchById(pitchId) });

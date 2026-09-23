@@ -8,7 +8,59 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  isAdmin: boolean;
   createdAt: string;
+}
+
+// --- Token usage ---
+
+export interface TokenUsageEntry {
+  id: string;
+  userId: string;
+  ideaId: string | null;
+  pitchId: string | null;
+  stage: string;
+  model: string;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  createdAt: string;
+}
+
+export interface UsageTotals {
+  callCount: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+}
+
+export interface UserUsageSummary extends UsageTotals {
+  userId: string;
+  userName: string;
+  userEmail: string;
+}
+
+export interface IdeaUsageSummary extends UsageTotals {
+  ideaId: string;
+  ideaTitle: string;
+  ownerId: string;
+  ownerName: string;
+}
+
+export interface PitchUsageSummary extends UsageTotals {
+  pitchId: string;
+  ideaId: string;
+  ideaTitle: string;
+  deckFileName: string | null;
+  ownerId: string;
+  ownerName: string;
+}
+
+export interface AdminUsageOverview {
+  totals: UsageTotals;
+  byUser: UserUsageSummary[];
+  byIdea: IdeaUsageSummary[];
+  byPitch: PitchUsageSummary[];
 }
 
 export type IdeaDimensionName =

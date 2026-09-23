@@ -19,6 +19,7 @@ export function TopNav({ currentUser }: { currentUser: User | null }) {
   const links: { href: string; label: string }[] = [
     { href: "/workspace", label: t(common.ideas, locale) },
     { href: "/pitches", label: t(common.pitches, locale) },
+    ...(currentUser?.isAdmin ? [{ href: "/admin", label: t(common.admin, locale) }] : []),
   ];
 
   async function signOut() {

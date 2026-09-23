@@ -10,6 +10,7 @@ export async function autofillIdeaCanvas(input: {
   text?: string;
   imageDataUrl?: string;
   locale: "en" | "ar";
+  userId: string;
 }): Promise<IdeaCanvasAutofillOutput> {
   const content = input.imageDataUrl
     ? [{ type: "text" as const, text: instruction }, { type: "image_url" as const, image_url: { url: input.imageDataUrl } }]
@@ -21,5 +22,8 @@ export async function autofillIdeaCanvas(input: {
     messages: [{ role: "user", content }],
     schema: ideaCanvasAutofillSchema,
     maxTokens: MAX_OUTPUT_TOKENS,
+    // No idea record exists yet at this stage (autofill runs before the
+    // idea is created) — attributed to the user only.
+    usage: { userId: input.userId, stage: "idea.autofill" },
   });
 }
