@@ -1,23 +1,19 @@
-// Shared domain types for the TEC Innovation Professional Program agents.
+// Shared domain types for the RTA Innovation Professional Program agents.
 // These mirror the Postgres schema (see supabase/migrations/0001_init.sql) and the output
 // schemas in Appendix A of the build-out plan.
 
 export type Locale = "en" | "ar";
 
-export type Role = "participant" | "mentor" | "coach" | "program_office" | "jury";
-
 export interface User {
   id: string;
   name: string;
   email: string;
-  role: Role;
   createdAt: string;
 }
 
 export type IdeaDimensionName =
   | "problem_clarity"
   | "user_evidence"
-  | "strategic_fit"
   | "value_viability"
   | "feasibility"
   | "novelty_risk";
@@ -25,7 +21,7 @@ export type IdeaDimensionName =
 export type PitchDimensionName =
   | "narrative_clarity"
   | "evidence_traction"
-  | "value_to_tec"
+  | "value_to_rta"
   | "plan_and_ask"
   | "delivery_timing"
   | "visual_clarity"
@@ -41,7 +37,6 @@ export type IdeaStage =
   | "critique"
   | "verdict"
   | "prototype_plan"
-  | "mentor_review"
   | "closed";
 
 export type PitchStage =
@@ -52,17 +47,26 @@ export type PitchStage =
   | "coherence"
   | "mock_jury"
   | "readiness"
-  | "coach_review"
   | "closed";
 
+export interface WhatMustChange {
+  customerCommunication: string;
+  processOrServiceRules: string;
+  digitalCapability: string;
+  operationsAndEcosystem: string;
+}
+
 export interface IdeaCanvas {
-  problem: string;
-  affectedUsers: string;
-  currentWorkaround: string;
-  proposedSolution: string;
-  expectedValue: string;
-  alignmentTags: string[];
-  knownRisks: string;
+  tableTheme: string;
+  prioritisedChallenge: string;
+  howItWorks: string;
+  whyItImprovesAdoption: string;
+  currentExperience: string;
+  proposedExperience: string;
+  whatMustChange: WhatMustChange;
+  assumptionsRisksDependencies: string;
+  expectedImpact: number | null;
+  implementationFeasibility: number | null;
 }
 
 export interface TeamProfile {
@@ -143,18 +147,6 @@ export interface PrototypePlan {
   createdAt: string;
 }
 
-export interface MentorReview {
-  ideaId: string;
-  assessmentVersion: number;
-  mentorId: string;
-  decision: IdeaVerdict;
-  overrodeAgent: boolean;
-  reason: string;
-  pointsToProbe: string[];
-  decidedAt: string;
-  minutesToDecide: number;
-}
-
 export interface Idea {
   id: string;
   ownerId: string;
@@ -165,7 +157,6 @@ export interface Idea {
   clarifications: Clarification[];
   stage: IdeaStage;
   currentAssessmentVersion: number;
-  mentorId: string | null;
   language: Locale;
   createdAt: string;
   updatedAt: string;
@@ -273,22 +264,13 @@ export interface PitchRun {
   createdAt: string;
 }
 
-/** A PitchRun once readiness has actually scored it — the shape the readiness dashboard, jury pack, and verdict badges need. */
+/** A PitchRun once readiness has actually scored it — the shape the readiness dashboard and verdict badges need. */
 export type ScoredPitchRun = PitchRun & {
   dimensions: PitchDimensionRating[];
   actions: ReadinessAction[];
   readinessScore: number;
   verdict: PitchVerdict;
 };
-
-export interface CoachReview {
-  pitchId: string;
-  runVersion: number;
-  coachId: string;
-  decision: "confirmed" | "rehearse_again";
-  reason: string;
-  decidedAt: string;
-}
 
 export interface Pitch {
   id: string;
@@ -303,7 +285,6 @@ export interface Pitch {
   mockJuryLog: MockJuryTurn[];
   stage: PitchStage;
   currentRunVersion: number;
-  coachId: string | null;
   language: Locale;
   createdAt: string;
   updatedAt: string;

@@ -23,7 +23,7 @@ export const pitchRubric: PitchRubricDimension[] = [
     source: "Deck, idea record, coherence report",
   },
   {
-    name: "value_to_tec",
+    name: "value_to_rta",
     weight: 0.2,
     whatTheAgentLooksFor:
       "Value mechanism and order of magnitude stated, linked to a named priority",
@@ -77,12 +77,19 @@ export const demoDayDefaultFormat = {
   questionTimeSeconds: 90,
 };
 
-export const juryPersonas = [
+export type JuryPersona = {
+  id: string;
+  name: string;
+  role: string;
+  focus: string;
+};
+
+export const juryPersonas: JuryPersona[] = [
   {
     id: "sponsor",
     name: "Business sponsor",
-    role: "Owns a TEC priority area and controls whether this gets sponsored",
-    focus: "Value to TEC, strategic fit, credibility of the ask",
+    role: "Owns an RTA priority area and controls whether this gets sponsored",
+    focus: "Value to RTA, strategic fit, credibility of the ask",
   },
   {
     id: "ops",

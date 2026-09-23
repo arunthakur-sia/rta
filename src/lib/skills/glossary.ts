@@ -19,7 +19,6 @@ export interface Bilingual {
 export const ideaDimensionLabels: Record<IdeaDimensionName, Bilingual> = {
   problem_clarity: { en: "Problem clarity", ar: "وضوح المشكلة" },
   user_evidence: { en: "User evidence", ar: "أدلة المستخدمين" },
-  strategic_fit: { en: "Strategic fit with TEC", ar: "التوافق الاستراتيجي مع المجلس" },
   value_viability: { en: "Value and viability", ar: "القيمة وقابلية التطبيق" },
   feasibility: { en: "Feasibility", ar: "الجدوى" },
   novelty_risk: { en: "Novelty and risk awareness", ar: "التميّز والوعي بالمخاطر" },
@@ -34,7 +33,7 @@ export const ideaVerdictLabels: Record<IdeaVerdict, Bilingual> = {
 export const pitchDimensionLabels: Record<PitchDimensionName, Bilingual> = {
   narrative_clarity: { en: "Narrative clarity", ar: "وضوح السرد" },
   evidence_traction: { en: "Evidence and traction", ar: "الأدلة ومؤشرات التقدم" },
-  value_to_tec: { en: "Value to TEC", ar: "القيمة للمجلس" },
+  value_to_rta: { en: "Value to RTA", ar: "القيمة لهيئة الطرق والنقل" },
   plan_and_ask: { en: "Plan and ask", ar: "الخطة والطلب" },
   delivery_timing: { en: "Delivery and timing", ar: "الإلقاء والتوقيت" },
   visual_clarity: { en: "Visual clarity", ar: "الوضوح البصري" },
@@ -60,7 +59,7 @@ export const templateSectionLabels: Record<PitchTemplateSection, Bilingual> = {
   users: { en: "Who is affected", ar: "المتأثرون" },
   validation: { en: "What was validated", ar: "ما تم التحقق منه" },
   prototype: { en: "The prototype and what it proved", ar: "النموذج الأولي وما أثبته" },
-  value: { en: "Value to TEC", ar: "القيمة للمجلس" },
+  value: { en: "Value to RTA", ar: "القيمة لهيئة الطرق والنقل" },
   ask: { en: "What is needed next", ar: "الخطوات التالية المطلوبة" },
   team: { en: "Team", ar: "الفريق" },
   other: { en: "Other", ar: "أخرى" },

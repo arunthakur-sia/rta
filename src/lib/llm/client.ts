@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { GATEWAY_BASE_URL } from "./models";
 
 declare global {
-  var __tecLlmClient: OpenAI | undefined;
+  var __llmClient: OpenAI | undefined;
 }
 
 export class LlmNotConfiguredError extends Error {
@@ -18,12 +18,12 @@ export class LlmNotConfiguredError extends Error {
  * typed error if it's missing, same contract the rest of the app expects.
  */
 export function getLlmClient(): OpenAI {
-  if (!globalThis.__tecLlmClient) {
+  if (!globalThis.__llmClient) {
     const apiKey = process.env.LLM_GATEWAY_API_KEY;
     if (!apiKey) throw new LlmNotConfiguredError();
-    globalThis.__tecLlmClient = new OpenAI({ apiKey, baseURL: GATEWAY_BASE_URL });
+    globalThis.__llmClient = new OpenAI({ apiKey, baseURL: GATEWAY_BASE_URL });
   }
-  return globalThis.__tecLlmClient;
+  return globalThis.__llmClient;
 }
 
 export function assertLlmConfigured(): void {

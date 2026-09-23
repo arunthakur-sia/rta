@@ -1,12 +1,14 @@
 import { zodResponseFormat } from "openai/helpers/zod";
 import { LengthFinishReasonError } from "openai/core/error";
+import type { ChatCompletionMessageParam } from "openai/resources/chat/completions";
 import type { z } from "zod";
 import { assertLlmConfigured, getLlmClient } from "./client";
 import { MAX_OUTPUT_TOKENS } from "./models";
 
 export interface StructuredMessage {
   role: "user" | "assistant";
-  content: string;
+  /** Plain text, or an OpenAI-style multimodal content array (used for vision input — see agents/idea-validation/autofill.ts). */
+  content: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string } }>;
 }
 
 export interface StructuredCallParams<T extends z.ZodType> {
@@ -37,7 +39,11 @@ export async function runStructured<T extends z.ZodType>(
   const systemContent = params.cacheableSystem ? `${params.system}\n\n${params.cacheableSystem}` : params.system;
 
   const attempt = async (extraMessages: StructuredMessage[], maxTokens: number): Promise<z.infer<T>> => {
-    const messages = [{ role: "system" as const, content: systemContent }, ...params.messages, ...extraMessages];
+    const messages = [
+      { role: "system" as const, content: systemContent },
+      ...params.messages,
+      ...extraMessages,
+    ] as ChatCompletionMessageParam[];
     const requestId = Math.random().toString(36).slice(2, 8);
     console.log(`[llm:${requestId}] request`, JSON.stringify({ model: params.model, maxTokens, messages }, null, 2));
 

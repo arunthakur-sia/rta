@@ -1,18 +1,10 @@
 import JSZip from "jszip";
+import { decodeXmlEntities } from "./xml";
 
 interface RawParsedSlide {
   title: string;
   body: string;
   notes: string;
-}
-
-function decodeXmlEntities(s: string): string {
-  return s
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&amp;/g, "&");
 }
 
 function textRuns(xml: string): string[] {

@@ -99,7 +99,7 @@ export function ClarifySessionPanel({ ideaId, interrupt }: { ideaId: string; int
             .replace("{max}", String(interrupt.maxQuestions))}
         />
 
-        {interrupt.dimension && (
+        {interrupt.dimension && interrupt.dimension in ideaDimensionLabels && (
           <span className="inline-block rounded-full bg-muted px-2 py-0.5 text-xs text-ink-600">
             {label(ideaDimensionLabels[interrupt.dimension as IdeaDimensionName], locale)}
           </span>

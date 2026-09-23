@@ -5,7 +5,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 
 export default async function ReadinessPage({ params }: { params: Promise<{ pitchId: string }> }) {
   const { pitchId } = await params;
-  const { run, allRuns, coachReview } = await getPitchViewData(pitchId);
+  const { run, allRuns } = await getPitchViewData(pitchId);
 
   if (!run) {
     return (
@@ -32,12 +32,7 @@ export default async function ReadinessPage({ params }: { params: Promise<{ pitc
 
   return (
     <div className="space-y-4">
-      <ReadinessDashboard
-        pitchId={pitchId}
-        run={{ ...run, verdict, readinessScore, dimensions, actions }}
-        allRuns={allRuns}
-        coachReview={coachReview}
-      />
+      <ReadinessDashboard run={{ ...run, verdict, readinessScore, dimensions, actions }} allRuns={allRuns} />
       <RunAgentButton pitchId={pitchId} isRerun />
     </div>
   );

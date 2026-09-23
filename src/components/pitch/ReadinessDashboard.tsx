@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { PitchVerdictBadge } from "@/components/ui/Badge";
 import { ScoreGauge } from "@/components/ui/ScoreGauge";
@@ -9,15 +8,13 @@ import { DimensionBars } from "@/components/ui/DimensionBars";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { pitchDimensionLabels, pitchVerdictLabels, label } from "@/lib/skills/glossary";
 import { pitchVerdictThresholds } from "@/lib/skills/pitchRubric";
-import type { CoachReview, PitchRun, ScoredPitchRun } from "@/lib/types/domain";
+import type { PitchRun, ScoredPitchRun } from "@/lib/types/domain";
 
 const copy = {
   score: { en: "Readiness score", ar: "درجة الجاهزية" },
   dims: { en: "Dimensions", ar: "الأبعاد" },
   actions: { en: "Prioritised actions", ar: "الإجراءات ذات الأولوية" },
   trend: { en: "Version trend", ar: "اتجاه النسخ" },
-  coachStatus: { en: "Coach status", ar: "حالة المدرّب" },
-  goToCoach: { en: "Go to coach review", ar: "الانتقال إلى مراجعة المدرّب" },
   hardRule: { en: "Rule applied", ar: "القاعدة المطبقة" },
   rework: { en: "Rework", ar: "إعادة عمل" },
   rehearse: { en: "Rehearse", ar: "بروفة" },
@@ -28,17 +25,7 @@ function t(entry: { en: string; ar: string }, locale: "en" | "ar") {
   return locale === "ar" ? entry.ar : entry.en;
 }
 
-export function ReadinessDashboard({
-  pitchId,
-  run,
-  allRuns,
-  coachReview,
-}: {
-  pitchId: string;
-  run: ScoredPitchRun;
-  allRuns: PitchRun[];
-  coachReview: CoachReview | null;
-}) {
+export function ReadinessDashboard({ run, allRuns }: { run: ScoredPitchRun; allRuns: PitchRun[] }) {
   const { locale } = useLocale();
   const [done, setDone] = useState<Set<number>>(new Set());
 
@@ -116,20 +103,6 @@ export function ReadinessDashboard({
           </CardBody>
         </Card>
       )}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>{t(copy.coachStatus, locale)}</CardTitle>
-        </CardHeader>
-        <CardBody className="flex items-center justify-between">
-          <span className="text-sm text-ink-600">
-            {coachReview ? `${coachReview.decision} — ${coachReview.reason}` : locale === "ar" ? "لم يتم البت بعد" : "Not yet decided"}
-          </span>
-          <Link href={`/pitches/${pitchId}/coach-review`} className="text-sm font-medium text-accent-700 underline">
-            {t(copy.goToCoach, locale)}
-          </Link>
-        </CardBody>
-      </Card>
     </div>
   );
 }

@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { createIdea, listAllIdeas, listIdeasForOwner } from "@/lib/db/queries/ideas";
+import { createIdea, listIdeasForOwner } from "@/lib/db/queries/ideas";
 import { getServerLocale } from "@/lib/i18n/locale.server";
 import type { IdeaCanvas, TeamProfile } from "@/lib/types/domain";
 
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Not signed in" }, { status: 401 });
-  const ideas = user.role === "program_office" || user.role === "mentor" ? await listAllIdeas() : await listIdeasForOwner(user.id);
+  const ideas = await listIdeasForOwner(user.id);
   return NextResponse.json({ ideas });
 }
 

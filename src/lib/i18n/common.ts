@@ -1,7 +1,7 @@
-import type { Locale, Role } from "@/lib/types/domain";
+import type { Locale } from "@/lib/types/domain";
 
 export const common = {
-  appName: { en: "TEC Innovation Program", ar: "برنامج المجلس التنفيذي للابتكار" },
+  appName: { en: "RTA Innovation Program", ar: "برنامج الابتكار لهيئة الطرق والنقل" },
   save: { en: "Save", ar: "حفظ" },
   cancel: { en: "Cancel", ar: "إلغاء" },
   continueLabel: { en: "Continue", ar: "متابعة" },
@@ -13,18 +13,9 @@ export const common = {
   language: { en: "Language", ar: "اللغة" },
   ideas: { en: "Ideas", ar: "الأفكار" },
   pitches: { en: "Pitches", ar: "العروض" },
-  programOffice: { en: "Program office", ar: "مكتب البرنامج" },
   newIdea: { en: "New idea", ar: "فكرة جديدة" },
   dashboard: { en: "Dashboard", ar: "لوحة المعلومات" },
 } as const;
-
-export const roleLabels: Record<Role, { en: string; ar: string }> = {
-  participant: { en: "Participant", ar: "مشارك" },
-  mentor: { en: "Mentor", ar: "موجّه" },
-  coach: { en: "Coach", ar: "مدرّب" },
-  program_office: { en: "Program office", ar: "مكتب البرنامج" },
-  jury: { en: "Jury", ar: "لجنة التحكيم" },
-};
 
 export function t(entry: { en: string; ar: string }, locale: Locale): string {
   return locale === "ar" ? entry.ar : entry.en;

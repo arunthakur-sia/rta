@@ -14,7 +14,7 @@ export const pitchTemplateSectionSchema = z.enum([
 export const pitchDimensionNameSchema = z.enum([
   "narrative_clarity",
   "evidence_traction",
-  "value_to_tec",
+  "value_to_rta",
   "plan_and_ask",
   "delivery_timing",
   "visual_clarity",

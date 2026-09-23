@@ -20,8 +20,8 @@ import type { Idea, IdeaAssessment, User } from "@/lib/types/domain";
 const copy = {
   startTitle: { en: "Ready to validate", ar: "جاهز للتحقق" },
   startBody: {
-    en: "Complete the canvas on the left, then start the validation session. The agent will ask up to eight adaptive questions, then produce a scored assessment for your mentor to confirm.",
-    ar: "أكمل اللوحة على اليسار، ثم ابدأ جلسة التحقق. سيطرح العامل حتى ثماني أسئلة تكيفية، ثم يصدر تقييمًا مُقيَّمًا ليؤكده موجّهك.",
+    en: "Complete the canvas on the left, then start the validation session. The agent will ask up to eight adaptive questions, then produce a scored assessment and verdict.",
+    ar: "أكمل اللوحة على اليسار، ثم ابدأ جلسة التحقق. سيطرح العامل حتى ثماني أسئلة تكيفية، ثم يصدر تقييمًا مُقيَّمًا وقرارًا نهائيًا.",
   },
   start: { en: "Start validation session", ar: "بدء جلسة التحقق" },
   incomplete: { en: "Finish the canvas fields marked above before starting.", ar: "أكمل حقول اللوحة المشار إليها أعلاه قبل البدء." },
@@ -135,7 +135,9 @@ export function IdeaOverviewClient({
             <Card>
               <CardBody className="flex justify-center">
                 <RadarChart
-                  axes={assessment.dimensions.map((d) => ({ label: label(ideaDimensionLabels[d.name], locale), value: d.rating }))}
+                  axes={assessment.dimensions
+                    .filter((d) => d.name in ideaDimensionLabels)
+                    .map((d) => ({ label: label(ideaDimensionLabels[d.name], locale), value: d.rating }))}
                 />
               </CardBody>
             </Card>

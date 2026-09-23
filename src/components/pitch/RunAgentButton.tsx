@@ -35,8 +35,6 @@ export function RunAgentButton({ pitchId, isRerun }: { pitchId: string; isRerun?
     const data = (await res.json()) as { status: string; interrupt?: PitchSessionInterrupt };
     if (data.interrupt?.type === "mock_jury_question") {
       router.push(`/pitches/${pitchId}/mock-jury`);
-    } else if (data.interrupt?.type === "coach_review_pending") {
-      router.push(`/pitches/${pitchId}/coach-review`);
     } else {
       router.push(`/pitches/${pitchId}/readiness`);
     }

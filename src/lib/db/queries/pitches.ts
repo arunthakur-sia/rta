@@ -1,6 +1,6 @@
 import { getSupabase, unwrap } from "@/lib/supabase/client";
 import { demoDayDefaultFormat } from "@/lib/skills/pitchRubric";
-import type { CoachReview, MockJuryTurn, Pitch, PitchRun, PitchStage, Slide } from "@/lib/types/domain";
+import type { MockJuryTurn, Pitch, PitchRun, PitchStage, Slide } from "@/lib/types/domain";
 
 interface PitchRow {
   id: string;
@@ -14,7 +14,6 @@ interface PitchRow {
   demo_format: Pitch["demoFormat"];
   stage: PitchStage;
   current_run_version: number;
-  coach_id: string | null;
   language: "en" | "ar";
   created_at: string;
   updated_at: string;
@@ -33,7 +32,6 @@ function rowToPitchBase(row: PitchRow): Omit<Pitch, "mockJuryLog"> {
     demoFormat: row.demo_format,
     stage: row.stage,
     currentRunVersion: row.current_run_version,
-    coachId: row.coach_id,
     language: row.language,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -83,16 +81,10 @@ export async function listPitchesForIdea(ideaId: string): Promise<Pitch[]> {
   return Promise.all(rows.map(assemblePitch));
 }
 
-export async function listAllPitches(): Promise<Pitch[]> {
-  const db = getSupabase();
-  const rows = unwrap(await db.from("pitches").select("*").order("updated_at", { ascending: false })) as PitchRow[];
-  return Promise.all(rows.map(assemblePitch));
-}
-
-export async function listPitchesForCoach(coachId: string): Promise<Pitch[]> {
+export async function listPitchesForOwner(ownerId: string): Promise<Pitch[]> {
   const db = getSupabase();
   const rows = unwrap(
-    await db.from("pitches").select("*").eq("coach_id", coachId).order("updated_at", { ascending: false })
+    await db.from("pitches").select("*").eq("owner_id", ownerId).order("updated_at", { ascending: false })
   ) as PitchRow[];
   return Promise.all(rows.map(assemblePitch));
 }
@@ -131,15 +123,6 @@ export async function confirmParse(pitchId: string): Promise<void> {
 export async function setPitchStage(id: string, stage: PitchStage): Promise<void> {
   const db = getSupabase();
   const { error } = await db.from("pitches").update({ stage, updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) throw new Error(`Supabase error: ${error.message}`);
-}
-
-export async function assignCoach(id: string, coachId: string): Promise<void> {
-  const db = getSupabase();
-  const { error } = await db
-    .from("pitches")
-    .update({ coach_id: coachId, updated_at: new Date().toISOString() })
-    .eq("id", id);
   if (error) throw new Error(`Supabase error: ${error.message}`);
 }
 
@@ -306,40 +289,4 @@ export async function nextPitchRunVersion(pitchId: string): Promise<number> {
     .maybeSingle();
   if (error) throw new Error(`Supabase error: ${error.message}`);
   return ((data as { version: number } | null)?.version ?? 0) + 1;
-}
-
-// -- Coach reviews --
-
-export async function saveCoachReview(review: CoachReview): Promise<void> {
-  const db = getSupabase();
-  const { error } = await db.from("pitch_coach_reviews").insert({
-    pitch_id: review.pitchId,
-    run_version: review.runVersion,
-    coach_id: review.coachId,
-    decision: review.decision,
-    reason: review.reason,
-    decided_at: review.decidedAt,
-  });
-  if (error) throw new Error(`Supabase error: ${error.message}`);
-}
-
-export async function getCoachReview(pitchId: string, runVersion: number): Promise<CoachReview | null> {
-  const db = getSupabase();
-  const { data, error } = await db
-    .from("pitch_coach_reviews")
-    .select("*")
-    .eq("pitch_id", pitchId)
-    .eq("run_version", runVersion)
-    .maybeSingle();
-  if (error) throw new Error(`Supabase error: ${error.message}`);
-  if (!data) return null;
-  const row = data as { pitch_id: string; run_version: number; coach_id: string; decision: CoachReview["decision"]; reason: string; decided_at: string };
-  return {
-    pitchId: row.pitch_id,
-    runVersion: row.run_version,
-    coachId: row.coach_id,
-    decision: row.decision,
-    reason: row.reason,
-    decidedAt: row.decided_at,
-  };
 }

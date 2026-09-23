@@ -9,7 +9,7 @@ import {
   readinessOutputSchema,
   structureOutputSchema,
 } from "@/lib/schemas/pitch";
-import { juryPersonas, MOCK_JURY_QUESTION_COUNT } from "@/lib/skills/pitchRubric";
+import { juryPersonas, MOCK_JURY_QUESTION_COUNT, type JuryPersona } from "@/lib/skills/pitchRubric";
 import { computePitchReadiness } from "@/lib/scoring/pitchReadiness";
 import { deriveActions } from "./actions";
 import {
@@ -17,7 +17,6 @@ import {
   answerMockJuryQuestion,
   getPitchById,
   nextPitchRunVersion,
-  saveCoachReview,
   savePitchRun,
   setPitchStage,
 } from "@/lib/db/queries/pitches";
@@ -25,7 +24,7 @@ import { getIdeaAssessment, getIdeaById, getLatestPrototypePlan } from "@/lib/db
 import { logAction } from "@/lib/db/queries/auditLog";
 import { deckContext, ideaRecordSummary, pitchSkillsBlock, roleAndBoundaries } from "./prompts";
 import type { PitchValidationStateType } from "./state";
-import type { CoachReview, Pitch, PitchDimensionRating, PitchRun, SlideComment } from "@/lib/types/domain";
+import type { MockJuryTurn, Pitch, PitchDimensionRating, PitchRun, SlideComment } from "@/lib/types/domain";
 
 async function loadContext(pitchId: string) {
   const pitch = (await getPitchById(pitchId))!;
@@ -45,18 +44,6 @@ export interface MockJuryInterruptPayload {
   totalTurns: number;
 }
 
-export interface CoachReviewInterruptPayload {
-  type: "coach_review_pending";
-  pitchId: string;
-  runVersion: number;
-}
-
-export interface CoachDecisionResume {
-  coachId: string;
-  decision: CoachReview["decision"];
-  reason: string;
-}
-
 export async function uploadNode(state: PitchValidationStateType) {
   await setPitchStage(state.pitchId, "upload");
   return {};
@@ -73,7 +60,7 @@ export async function structureNode(state: PitchValidationStateType) {
 
   const result = await runStructured({
     model: CAPABLE_MODEL,
-    system: `${roleAndBoundaries(state.locale)}\n\nCurrent stage: STRUCTURE. Map every slide to the TEC pitch template section it belongs to. List missing sections and any ordering issues, and suggest a full slide order (as an array of slide indices, 0-based).`,
+    system: `${roleAndBoundaries(state.locale)}\n\nCurrent stage: STRUCTURE. Map every slide to the RTA pitch template section it belongs to. List missing sections and any ordering issues, and suggest a full slide order (as an array of slide indices, 0-based).`,
     cacheableSystem: pitchSkillsBlock(state.locale),
     messages: [{ role: "user", content: `${deckContext(pitch)}\n\n${ideaRecordSummary(idea, assessment, plan)}` }],
     schema: structureOutputSchema,
@@ -232,21 +219,39 @@ export async function mockJuryNode(state: PitchValidationStateType) {
   });
 
   if (!turn.answer) {
-    const { idea, assessment, plan } = await loadContext(state.pitchId);
-    const evaluation = await runStructured({
-      model: FAST_MODEL,
-      system: `${roleAndBoundaries(state.locale)}\n\nEvaluate the participant's answer to the mock jury question as the "${finalPersona.name}" persona. Be direct about whether the answer is backed by evidence.`,
-      messages: [
-        { role: "user", content: `${ideaRecordSummary(idea, assessment, plan)}\n\nQuestion: ${turn.question}\nAnswer: ${answer}` },
-      ],
-      schema: mockJuryEvaluationSchema,
-      maxTokens: MAX_OUTPUT_TOKENS,
-    });
-
-    await answerMockJuryQuestion(turn.id, answer, evaluation.evaluation, evaluation.modelAnswer);
+    await evaluateMockJuryAnswer(state.pitchId, state.locale, turn, finalPersona, answer);
   }
 
   return {};
+}
+
+/**
+ * Scores one submitted mock jury answer and records it. Split out of
+ * mockJuryNode so the runner's checkpoint-recovery path (see
+ * pitch-validation/runner.ts — the in-memory LangGraph checkpoint doesn't
+ * survive a dev-server hot reload) can score and save an answer that
+ * arrives with no live interrupt to resume, without duplicating the
+ * evaluation prompt.
+ */
+export async function evaluateMockJuryAnswer(
+  pitchId: string,
+  locale: "en" | "ar",
+  turn: MockJuryTurn,
+  persona: JuryPersona,
+  answer: string
+) {
+  const { idea, assessment, plan } = await loadContext(pitchId);
+  const evaluation = await runStructured({
+    model: FAST_MODEL,
+    system: `${roleAndBoundaries(locale)}\n\nEvaluate the participant's answer to the mock jury question as the "${persona.name}" persona. Be direct about whether the answer is backed by evidence.`,
+    messages: [
+      { role: "user", content: `${ideaRecordSummary(idea, assessment, plan)}\n\nQuestion: ${turn.question}\nAnswer: ${answer}` },
+    ],
+    schema: mockJuryEvaluationSchema,
+    maxTokens: MAX_OUTPUT_TOKENS,
+  });
+
+  await answerMockJuryQuestion(turn.id, answer, evaluation.evaluation, evaluation.modelAnswer);
 }
 
 export async function routeAfterMockJury(state: PitchValidationStateType): Promise<"mock_jury" | "readiness"> {
@@ -308,36 +313,6 @@ export async function readinessNode(state: PitchValidationStateType) {
   });
 
   return { dimensions };
-}
-
-export async function coachReviewNode(state: PitchValidationStateType) {
-  const pitch = (await getPitchById(state.pitchId))!;
-  await setPitchStage(pitch.id, "coach_review");
-  const runVersion = pitch.currentRunVersion;
-
-  const decision = interrupt<CoachReviewInterruptPayload, CoachDecisionResume>({
-    type: "coach_review_pending",
-    pitchId: pitch.id,
-    runVersion,
-  });
-
-  await saveCoachReview({
-    pitchId: pitch.id,
-    runVersion,
-    coachId: decision.coachId,
-    decision: decision.decision,
-    reason: decision.reason,
-    decidedAt: new Date().toISOString(),
-  });
-  await logAction({
-    entityType: "pitch",
-    entityId: pitch.id,
-    actorId: decision.coachId,
-    action: "coach_review",
-    detail: `${decision.decision}: ${decision.reason}`,
-  });
-
-  return {};
 }
 
 export async function closedNode(state: PitchValidationStateType) {

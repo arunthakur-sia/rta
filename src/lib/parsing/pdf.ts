@@ -41,3 +41,15 @@ export async function parsePdfDeck(buffer: Buffer): Promise<RawParsedSlide[]> {
     await parser.destroy();
   }
 }
+
+/** Full document text, no per-page/slide segmentation — used by the idea-canvas autofill flow. */
+export async function extractPdfText(buffer: Buffer): Promise<string> {
+  ensurePdfWorkerConfigured();
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    return result.pages.map((page) => page.text).join("\n\n");
+  } finally {
+    await parser.destroy();
+  }
+}

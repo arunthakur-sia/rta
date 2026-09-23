@@ -2,7 +2,7 @@ import { rm } from "node:fs/promises";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { deletePitch, getCoachReview, getPitchById, getPitchRun, listPitchRuns } from "@/lib/db/queries/pitches";
+import { deletePitch, getPitchById, getPitchRun, listPitchRuns } from "@/lib/db/queries/pitches";
 import { listAuditLog } from "@/lib/db/queries/auditLog";
 
 interface Params {
@@ -19,9 +19,8 @@ export async function GET(_request: Request, { params }: Params) {
     listPitchRuns(pitch.id),
     listAuditLog("pitch", pitch.id),
   ]);
-  const coachReview = run ? await getCoachReview(pitch.id, run.version) : null;
 
-  return NextResponse.json({ pitch, run, allRuns, coachReview, auditLog });
+  return NextResponse.json({ pitch, run, allRuns, auditLog });
 }
 
 export async function DELETE(_request: Request, { params }: Params) {

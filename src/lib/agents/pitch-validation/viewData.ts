@@ -1,4 +1,4 @@
-import { getCoachReview, getPitchById, getPitchRun, listPitchRuns } from "@/lib/db/queries/pitches";
+import { getPitchById, getPitchRun, listPitchRuns } from "@/lib/db/queries/pitches";
 import { getIdeaAssessment, getIdeaById, getLatestPrototypePlan } from "@/lib/db/queries/ideas";
 import { getPendingPitchInterrupt } from "./runner";
 import { notFound } from "next/navigation";
@@ -17,9 +17,7 @@ export async function getPitchViewData(pitchId: string) {
     getPendingPitchInterrupt(pitchId),
   ]);
 
-  const coachReview = run ? await getCoachReview(pitch.id, run.version) : null;
-
-  return { pitch, idea, assessment, plan, run, allRuns, coachReview, pendingInterrupt };
+  return { pitch, idea, assessment, plan, run, allRuns, pendingInterrupt };
 }
 
 export type PitchViewData = Awaited<ReturnType<typeof getPitchViewData>>;

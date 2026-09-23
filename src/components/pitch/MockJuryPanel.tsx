@@ -4,9 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Spinner } from "@/components/ui/Spinner";
+import { CyclingStatus } from "@/components/ui/CyclingStatus";
+import { LoadingBar } from "@/components/ui/LoadingBar";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
-import { demoDayDefaultFormat } from "@/lib/skills/pitchRubric";
+import { demoDayDefaultFormat, juryPersonas } from "@/lib/skills/pitchRubric";
 import type { MockJuryInterruptPayload } from "@/lib/agents/pitch-validation/nodes";
 import type { MockJuryTurn } from "@/lib/types/domain";
 
@@ -15,9 +20,17 @@ const copy = {
   timeLeft: { en: "Time left", ar: "الوقت المتبقي" },
   placeholder: { en: "Answer as if you were on stage…", ar: "أجب كما لو كنت على المسرح…" },
   submit: { en: "Submit answer", ar: "إرسال الإجابة" },
-  thinking: { en: "Evaluating your answer…", ar: "جارٍ تقييم إجابتك…" },
   log: { en: "Session log", ar: "سجل الجلسة" },
-  modelAnswer: { en: "Model answer", ar: "إجابة نموذجية" },
+  questionLabel: { en: "Question", ar: "السؤال" },
+  answerLabel: { en: "Your answer", ar: "إجابتك" },
+  evaluationLabel: { en: "Jury feedback", ar: "ملاحظات لجنة التحكيم" },
+  agentSuggestionLabel: { en: "Agent suggestion", ar: "اقتراح الوكيل" },
+  answerError: { en: "Couldn't submit your answer. Try again.", ar: "تعذر إرسال إجابتك. حاول مرة أخرى." },
+};
+
+const evaluatingSteps = {
+  en: ["Reading your answer…", "Checking it against the evidence…", "Weighing how the jury would react…", "Scoring qa_resilience…"],
+  ar: ["قراءة إجابتك…", "مقارنتها بالأدلة المتاحة…", "تقدير كيف ستتفاعل لجنة التحكيم…", "تقييم مدى الصمود أمام الأسئلة…"],
 };
 
 function t(entry: { en: string; ar: string }, locale: "en" | "ar") {
@@ -48,17 +61,34 @@ export function MockJuryPanel({ pitchId, interrupt, log }: { pitchId: string; in
   const router = useRouter();
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   async function submit() {
     if (!answer.trim()) return;
     setSubmitting(true);
-    await fetch(`/api/pitches/${pitchId}/mock-jury/answer`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ answer }),
-    });
-    setAnswer("");
-    router.refresh();
+    setSubmitError(null);
+    try {
+      const res = await fetch(`/api/pitches/${pitchId}/mock-jury/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ answer }),
+      });
+      if (!res.ok) {
+        setSubmitting(false);
+        setSubmitError(t(copy.answerError, locale));
+        return;
+      }
+      setAnswer("");
+      router.refresh();
+      // Left `submitting` true on success: this panel is keyed on turnId by
+      // the parent, so it will be discarded once the refreshed props land
+      // (either the next question's interrupt, or the mock-jury page's own
+      // stalled-session fallback) rather than flipping back to the answer
+      // form for the moment in between.
+    } catch {
+      setSubmitting(false);
+      setSubmitError(t(copy.answerError, locale));
+    }
   }
 
   return (
@@ -75,13 +105,20 @@ export function MockJuryPanel({ pitchId, interrupt, log }: { pitchId: string; in
             <p className="text-base font-medium text-ink-900">{interrupt.question}</p>
             <CountdownTimer key={interrupt.turnId} locale={locale} />
             {submitting ? (
-              <p className="text-sm text-accent-700">{t(copy.thinking, locale)}</p>
+              <div className="space-y-2 rounded-lg bg-accent-100 px-3 py-3 text-sm text-accent-700">
+                <div className="flex items-center gap-2">
+                  <Spinner className="shrink-0" />
+                  <CyclingStatus messages={evaluatingSteps[locale]} className="font-medium" />
+                </div>
+                <LoadingBar />
+              </div>
             ) : (
               <>
                 <textarea rows={4} autoFocus className="w-full rounded-lg border border-border px-3 py-2 text-sm" value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder={t(copy.placeholder, locale)} />
                 <Button onClick={submit} disabled={!answer.trim()}>
                   {t(copy.submit, locale)}
                 </Button>
+                {submitError && <p className="text-sm text-verdict-refine">{submitError}</p>}
               </>
             )}
           </CardBody>
@@ -93,19 +130,42 @@ export function MockJuryPanel({ pitchId, interrupt, log }: { pitchId: string; in
           <CardHeader>
             <CardTitle>{t(copy.log, locale)}</CardTitle>
           </CardHeader>
-          <CardBody className="space-y-3">
-            {log.map((turn) => (
-              <div key={turn.id} className="rounded-lg border border-border p-3 text-sm">
-                <p className="font-medium text-ink-900">{turn.question}</p>
-                {turn.answer && <p className="mt-1 text-ink-700">A: {turn.answer}</p>}
-                {turn.evaluation && <p className="mt-1 text-xs text-ink-500">{turn.evaluation}</p>}
-                {turn.modelAnswer && (
-                  <p className="mt-1 text-xs text-accent-700">
-                    {t(copy.modelAnswer, locale)}: {turn.modelAnswer}
-                  </p>
-                )}
-              </div>
-            ))}
+          <CardBody className="space-y-4">
+            {log.map((turn) => {
+              const persona = juryPersonas.find((p) => p.id === turn.personaId);
+              return (
+                <div key={turn.id} className="space-y-3 rounded-lg border border-border p-4 text-sm">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge>{t(copy.questionLabel, locale)}</Badge>
+                      {persona && <span className="text-xs text-ink-400">{persona.name}</span>}
+                    </div>
+                    <p className="font-medium text-ink-900">{turn.question}</p>
+                  </div>
+
+                  {turn.answer && (
+                    <div className="space-y-1">
+                      <Badge>{t(copy.answerLabel, locale)}</Badge>
+                      <p className="text-ink-700">{turn.answer}</p>
+                    </div>
+                  )}
+
+                  {turn.evaluation && (
+                    <div className="space-y-1 rounded-md bg-muted p-3">
+                      <Badge>{t(copy.evaluationLabel, locale)}</Badge>
+                      <Markdown className="text-xs text-ink-600">{turn.evaluation}</Markdown>
+                    </div>
+                  )}
+
+                  {turn.modelAnswer && (
+                    <div className="space-y-1 rounded-md bg-accent-100 p-3">
+                      <Badge tone="accent">{t(copy.agentSuggestionLabel, locale)}</Badge>
+                      <Markdown className="text-xs text-accent-700">{turn.modelAnswer}</Markdown>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </CardBody>
         </Card>
       )}

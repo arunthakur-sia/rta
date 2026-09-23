@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -8,7 +8,7 @@ import { Badge, IdeaVerdictBadge } from "@/components/ui/Badge";
 import { Spinner } from "@/components/ui/Spinner";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { confidenceLabels, ideaDimensionLabels, ideaVerdictLabels, label } from "@/lib/skills/glossary";
-import type { IdeaAssessment } from "@/lib/types/domain";
+import type { Idea, IdeaAssessment, IdeaCanvas } from "@/lib/types/domain";
 
 const copy = {
   title: { en: "Scorecard", ar: "بطاقة التقييم" },
@@ -33,22 +33,40 @@ const copy = {
   sourceClarification: { en: "Interview", ar: "المقابلة" },
   sourceEvidence: { en: "Evidence pack", ar: "حزمة الأدلة" },
   sourceWeb: { en: "Web", ar: "الويب" },
+  questionLabel: { en: "Question", ar: "السؤال" },
+  answerLabel: { en: "Answer", ar: "الإجابة" },
+  unanswered: { en: "(not yet answered)", ar: "(لم تتم الإجابة بعد)" },
+  sourceNotFound: { en: "Original source not found — it may have been removed.", ar: "تعذر العثور على المصدر الأصلي — ربما تمت إزالته." },
 };
 
 function t(entry: { en: string; ar: string }, locale: "en" | "ar") {
   return locale === "ar" ? entry.ar : entry.en;
 }
 
-/** Evidence is cited as raw "canvas.field" / "clarification.<n>" strings; render those as a readable pill instead of literal brackets. */
+/** "howItWorks" / "customer_communication" → "how it works" / "customer communication". */
+function prettifyFieldPath(detail: string): string {
+  return detail
+    .split(".")
+    .map((part) =>
+      part
+        .replace(/_/g, " ")
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .toLowerCase()
+    )
+    .join(" › ");
+}
+
+/** Evidence is cited as raw "canvas.field" / "clarification.<id>" strings; render those as a readable pill instead of literal brackets. */
 function formatEvidenceSource(source: string, locale: "en" | "ar"): string {
-  const [kind, detail] = source.split(".", 2);
+  const [kind, ...rest] = source.split(".");
+  const detail = rest.join(".");
   switch (kind) {
     case "canvas":
-      return detail ? `${t(copy.sourceCanvas, locale)} · ${detail.replace(/_/g, " ")}` : t(copy.sourceCanvas, locale);
+      return detail ? `${t(copy.sourceCanvas, locale)} · ${prettifyFieldPath(detail)}` : t(copy.sourceCanvas, locale);
     case "clarification":
-      return detail ? `${t(copy.sourceClarification, locale)} Q${detail}` : t(copy.sourceClarification, locale);
+      return t(copy.sourceClarification, locale);
     case "evidence":
-      return detail ? `${t(copy.sourceEvidence, locale)} #${detail}` : t(copy.sourceEvidence, locale);
+      return t(copy.sourceEvidence, locale);
     case "web":
       return t(copy.sourceWeb, locale);
     default:
@@ -56,16 +74,98 @@ function formatEvidenceSource(source: string, locale: "en" | "ar"): string {
   }
 }
 
-function DimensionCard({ ideaId, dim, locale }: { ideaId: string; dim: IdeaAssessment["dimensions"][number]; locale: "en" | "ar" }) {
+/** Looks up a canvas field by dot-path first, then falls back to a case/underscore-insensitive match — the model's own citation string doesn't always match the field key exactly. */
+function resolveCanvasValue(canvas: IdeaCanvas, detail: string): string | null {
+  const parts = detail.split(".");
+  let node: unknown = canvas;
+  for (const part of parts) {
+    if (node && typeof node === "object" && part in (node as Record<string, unknown>)) {
+      node = (node as Record<string, unknown>)[part];
+    } else {
+      node = undefined;
+      break;
+    }
+  }
+  if (typeof node === "string" && node) return node;
+
+  const flat: Record<string, unknown> = { ...canvas, ...canvas.whatMustChange };
+  const target = parts[parts.length - 1]?.toLowerCase().replace(/[_\s]/g, "");
+  for (const [key, value] of Object.entries(flat)) {
+    if (key.toLowerCase().replace(/[_\s]/g, "") === target && typeof value === "string" && value) {
+      return value;
+    }
+  }
+  return null;
+}
+
+/** Resolves an evidence citation ("clarification.<id>" / "evidence.<id>" / "canvas.field") back to the original text it quotes, so a participant can check the quote in context instead of just trusting it. Returns null for a citation with nothing to show ("web", or a stale id from before the record changed). */
+function resolveEvidenceSource(
+  source: string,
+  idea: Pick<Idea, "clarifications" | "evidence" | "canvas">,
+  locale: "en" | "ar"
+): ReactNode | null {
+  const [kind, ...rest] = source.split(".");
+  const detail = rest.join(".");
+
+  if (kind === "clarification") {
+    const item = idea.clarifications.find((c) => c.id === detail);
+    if (!item) return <p className="text-ink-400">{t(copy.sourceNotFound, locale)}</p>;
+    return (
+      <div className="space-y-1">
+        <p>
+          <span className="font-semibold text-ink-500">{t(copy.questionLabel, locale)}:</span> {item.question}
+        </p>
+        <p>
+          <span className="font-semibold text-ink-500">{t(copy.answerLabel, locale)}:</span>{" "}
+          {item.answer || t(copy.unanswered, locale)}
+        </p>
+      </div>
+    );
+  }
+
+  if (kind === "evidence") {
+    const item = idea.evidence.find((e) => e.id === detail);
+    if (!item) return <p className="text-ink-400">{t(copy.sourceNotFound, locale)}</p>;
+    return (
+      <div className="space-y-1">
+        <p className="whitespace-pre-wrap">{item.content}</p>
+        {item.url && (
+          <a href={item.url} target="_blank" rel="noreferrer" className="text-accent-700 underline">
+            {item.url}
+          </a>
+        )}
+      </div>
+    );
+  }
+
+  if (kind === "canvas") {
+    const value = resolveCanvasValue(idea.canvas, detail);
+    if (value === null) return <p className="text-ink-400">{t(copy.sourceNotFound, locale)}</p>;
+    return <p className="whitespace-pre-wrap">{value}</p>;
+  }
+
+  return null;
+}
+
+function DimensionCard({
+  idea,
+  dim,
+  locale,
+}: {
+  idea: Idea;
+  dim: IdeaAssessment["dimensions"][number];
+  locale: "en" | "ar";
+}) {
   const router = useRouter();
   const [responding, setResponding] = useState(false);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
   async function send() {
     if (!text.trim()) return;
     setSending(true);
-    await fetch(`/api/ideas/${ideaId}/evidence`, {
+    await fetch(`/api/ideas/${idea.id}/evidence`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ kind: "note", content: `[${label(ideaDimensionLabels[dim.name], locale)}] ${text.trim()}` }),
@@ -91,14 +191,33 @@ function DimensionCard({ ideaId, dim, locale }: { ideaId: string; dim: IdeaAsses
             <div>
               <p className="mb-1 text-xs font-semibold text-ink-500">{t(copy.evidence, locale)}</p>
               <ul className="space-y-1.5">
-                {dim.evidence.map((e, i) => (
-                  <li key={i} className="rounded-lg bg-muted px-2.5 py-1.5 text-ink-700">
-                    <span className="mb-1 inline-block rounded-full bg-white px-2 py-0.5 text-[11px] font-medium capitalize text-ink-500 ring-1 ring-inset ring-border">
-                      {formatEvidenceSource(e.source, locale)}
-                    </span>
-                    <p>{e.quote}</p>
-                  </li>
-                ))}
+                {dim.evidence.map((e, i) => {
+                  const resolved = resolveEvidenceSource(e.source, idea, locale);
+                  const isOpen = expandedIndex === i;
+                  return (
+                    <li key={i} className="rounded-lg bg-muted px-2.5 py-1.5 text-ink-700">
+                      {resolved ? (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedIndex(isOpen ? null : i)}
+                          aria-expanded={isOpen}
+                          className="mb-1 inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-medium text-ink-500 ring-1 ring-inset ring-border transition-colors hover:bg-accent-50 hover:text-accent-700 hover:ring-accent-300"
+                        >
+                          {formatEvidenceSource(e.source, locale)}
+                          <span aria-hidden>{isOpen ? "▲" : "▼"}</span>
+                        </button>
+                      ) : (
+                        <span className="mb-1 inline-block rounded-full bg-white px-2 py-0.5 text-[11px] font-medium capitalize text-ink-500 ring-1 ring-inset ring-border">
+                          {formatEvidenceSource(e.source, locale)}
+                        </span>
+                      )}
+                      <p>{e.quote}</p>
+                      {resolved && isOpen && (
+                        <div className="mt-2 rounded-lg border border-border bg-white p-2 text-xs text-ink-600">{resolved}</div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           )}
@@ -188,14 +307,19 @@ export function ScorecardSummary({
   );
 }
 
-/** The six rubric-dimension cards ("6 pillars"). Lives on its own page since each card carries real detail. */
-export function ScorecardDimensions({ ideaId, assessment }: { ideaId: string; assessment: IdeaAssessment }) {
+/** The rubric-dimension cards ("5 pillars"). Lives on its own page since each card carries real detail. */
+export function ScorecardDimensions({ idea, assessment }: { idea: Idea; assessment: IdeaAssessment }) {
   const { locale } = useLocale();
+
+  // Filters out a dimension no longer in the current rubric (e.g. an
+  // assessment scored before a pillar was retired) rather than crashing —
+  // ideaDimensionLabels only has entries for the current dimension set.
+  const dimensions = assessment.dimensions.filter((dim) => dim.name in ideaDimensionLabels);
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      {assessment.dimensions.map((dim) => (
-        <DimensionCard key={dim.name} ideaId={ideaId} dim={dim} locale={locale} />
+      {dimensions.map((dim) => (
+        <DimensionCard key={dim.name} idea={idea} dim={dim} locale={locale} />
       ))}
     </div>
   );

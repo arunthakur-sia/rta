@@ -11,7 +11,6 @@ const tabs = [
   { seg: "coherence", en: "Coherence Report", ar: "تقرير الاتساق" },
   { seg: "mock-jury", en: "Mock Jury", ar: "لجنة تحكيم تجريبية" },
   { seg: "readiness", en: "Readiness", ar: "الجاهزية" },
-  { seg: "coach-review", en: "Coach Review", ar: "مراجعة المدرّب" },
 ];
 
 export function PitchSubNav({ pitchId }: { pitchId: string }) {

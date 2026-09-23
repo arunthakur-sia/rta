@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import { createPitch, listAllPitches, listPitchesForIdea } from "@/lib/db/queries/pitches";
+import { createPitch, listPitchesForIdea, listPitchesForOwner } from "@/lib/db/queries/pitches";
 import { getIdeaById } from "@/lib/db/queries/ideas";
 import { getServerLocale } from "@/lib/i18n/locale.server";
 
@@ -12,9 +12,7 @@ export async function GET(request: Request) {
 
   if (ideaId) return NextResponse.json({ pitches: await listPitchesForIdea(ideaId) });
 
-  const allPitches = await listAllPitches();
-  const visible = user.role === "program_office" || user.role === "coach" ? allPitches : allPitches.filter((p) => p.ownerId === user.id);
-  return NextResponse.json({ pitches: visible });
+  return NextResponse.json({ pitches: await listPitchesForOwner(user.id) });
 }
 
 export async function POST(request: Request) {

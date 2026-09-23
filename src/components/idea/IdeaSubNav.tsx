@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const tabs = [
   { seg: "", en: "Overview", ar: "نظرة عامة" },
-  { seg: "pillars", en: "6 pillars", ar: "الركائز الست" },
+  { seg: "pillars", en: "5 pillars", ar: "الركائز الخمس" },
   { seg: "plan", en: "Plan & review", ar: "الخطة والمراجعة" },
 ];
 

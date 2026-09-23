@@ -21,11 +21,20 @@ export default async function PitchStudioPage({ params }: { params: Promise<{ pi
     return (
       <div className="space-y-4">
         <Card>
-          <CardBody>
+          <CardBody className="space-y-3">
+            <div>
+              <p className="text-sm font-medium text-ink-900">{pitch.deckFileName ?? "Uploaded deck"}</p>
+              <p className="text-xs text-ink-500">{pitch.slides.length} slides parsed</p>
+            </div>
             <RunAgentButton pitchId={pitchId} />
           </CardBody>
         </Card>
-        <DeckUploadPanel pitchId={pitchId} />
+        <details className="no-print">
+          <summary className="cursor-pointer text-sm text-ink-500">Upload a different deck</summary>
+          <div className="mt-2">
+            <DeckUploadPanel pitchId={pitchId} />
+          </div>
+        </details>
       </div>
     );
   }

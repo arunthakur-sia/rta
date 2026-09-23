@@ -28,8 +28,8 @@ function clampRating(rating: number | null): number | null {
  * A dimension rated `null` ("insufficient information") is scored as a 2
  * for the numeric average — conservative, but never allowed to produce a
  * Ready verdict (see the `insufficient_information_blocks_ready` rule
- * below), since a mentor should see "not enough evidence" before waving a
- * team into prototyping.
+ * below), since "not enough evidence" should never wave a team straight
+ * into prototyping.
  */
 export function computeIdeaVerdict(rawDimensions: DimensionRating[]): IdeaVerdictResult {
   const dimensions = rawDimensions.map((d) => ({ ...d, rating: clampRating(d.rating) }));
@@ -41,14 +41,9 @@ export function computeIdeaVerdict(rawDimensions: DimensionRating[]): IdeaVerdic
   }, 0);
   const weightedScore = Math.round(weightedScoreRaw * 100) / 100;
 
-  const strategicFit = byName.get("strategic_fit");
   const userEvidence = byName.get("user_evidence");
   const hasRating1 = dimensions.some((d) => d.rating === 1);
   const hasNullRating = dimensions.some((d) => d.rating === null);
-
-  if (strategicFit?.rating === 1) {
-    return { weightedScore, verdict: "pivot", hardRuleTriggered: "strategic_fit_rated_1_forces_pivot" };
-  }
 
   if (hasRating1) {
     return {

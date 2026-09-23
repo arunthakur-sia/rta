@@ -2,18 +2,18 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getUserById } from "@/lib/db/queries/users";
 import { SESSION_COOKIE_NAME, SESSION_TTL_MS, buildSessionToken, parseSessionToken } from "@/lib/auth/sessionToken";
-import type { Role, User } from "@/lib/types/domain";
+import type { User } from "@/lib/types/domain";
 
-// Real sign-in: each seeded account (participant/mentor/coach/program
-// office/jury) has an email + password (see users.ts ensureSeeded). Session
-// state is a signed, expiring cookie — an HMAC over the user id and expiry,
-// see sessionToken.ts — rather than a raw user id, so it can't be forged
-// into someone else's account by hand-editing the cookie. proxy.ts performs
-// the same signature check on every request to redirect signed-out visitors
-// to /login before a page even renders; this module re-checks per request
-// for defense in depth. SSO/TEC-intranet integration remains out of scope
-// for this build, per the plan ("Responsive web first; TEC intranet or SSO
-// integration in the pilot").
+// Real sign-in: the seeded participant account has an email + password (see
+// users.ts ensureSeeded). Session state is a signed, expiring cookie — an
+// HMAC over the user id and expiry, see sessionToken.ts — rather than a raw
+// user id, so it can't be forged into someone else's account by
+// hand-editing the cookie. proxy.ts performs the same signature check on
+// every request to redirect signed-out visitors to /login before a page
+// even renders; this module re-checks per request for defense in depth.
+// SSO/RTA-intranet integration remains out of scope for this build, per the
+// plan ("Responsive web first; RTA intranet or SSO integration in the
+// pilot").
 
 export async function createSession(userId: string): Promise<void> {
   const store = await cookies();
@@ -45,14 +45,5 @@ export async function getCurrentUser(): Promise<User | null> {
 export async function requireUser(): Promise<User> {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  return user;
-}
-
-export async function requireRole(...roles: Role[]): Promise<User> {
-  const user = await getCurrentUser();
-  if (!user) throw new Error("Not signed in");
-  if (!roles.includes(user.role)) {
-    throw new Error(`Forbidden: requires role ${roles.join(" or ")}, got ${user.role}`);
-  }
   return user;
 }

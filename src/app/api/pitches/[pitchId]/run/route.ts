@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { assignCoach, getPitchById } from "@/lib/db/queries/pitches";
-import { getDefaultUserForRole } from "@/lib/db/queries/users";
+import { getPitchById } from "@/lib/db/queries/pitches";
 import { getPendingPitchInterrupt, startPitchValidationRun } from "@/lib/agents/pitch-validation/runner";
 import { toErrorResponse } from "@/lib/http/errors";
 
@@ -22,11 +21,6 @@ export async function POST(_request: Request, { params }: Params) {
   if (!pitch) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (!pitch.parseConfirmed) {
     return NextResponse.json({ error: "Confirm the parsed slides before running the agent" }, { status: 400 });
-  }
-
-  if (!pitch.coachId) {
-    const coach = await getDefaultUserForRole("coach");
-    await assignCoach(pitch.id, coach.id);
   }
 
   try {

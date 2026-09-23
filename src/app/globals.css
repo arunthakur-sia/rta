@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  /* Neutral, near-black text/UI scale. */
-  --color-ink-950: #09090b;
-  --color-ink-900: #18181b;
-  --color-ink-800: #27272a;
-  --color-ink-700: #3f3f46;
-  --color-ink-600: #52525b;
-  --color-ink-500: #71717a;
-  --color-ink-400: #a1a1aa;
+  /* Neutral text/UI scale, tinted toward SIA Partners' navy (#0A151E). */
+  --color-ink-950: #0a1218;
+  --color-ink-900: #16212b;
+  --color-ink-800: #232f3a;
+  --color-ink-700: #3a4753;
+  --color-ink-600: #4f5b66;
+  --color-ink-500: #6d7882;
+  --color-ink-400: #9ba3ab;
 
-  /* Brand accent, keyed off the official TEC mark (public/brand/tec-logo.svg, #E4002B). */
-  --color-accent-700: #96001d;
-  --color-accent-600: #c40025;
-  --color-accent-500: #e4002b;
-  --color-accent-400: #f1607c;
-  --color-accent-300: #f7a0b1;
-  --color-accent-100: #fde1e6;
+  /* Brand accent, keyed off SIA Partners' teal (sia-partners.com, #00A2A3). */
+  --color-accent-700: #045b5c;
+  --color-accent-600: #077c84;
+  --color-accent-500: #00a2a3;
+  --color-accent-400: #4dbdbe;
+  --color-accent-300: #8fd6d6;
+  --color-accent-100: #dbf3f3;
 
   --color-background: #f7f7f8;
   --color-muted: #ececef;
@@ -98,4 +98,22 @@ html[dir="rtl"] {
   .no-print {
     display: none !important;
   }
+}
+
+@keyframes loading-bar-slide {
+  0% {
+    left: -40%;
+    width: 40%;
+  }
+  50% {
+    width: 60%;
+  }
+  100% {
+    left: 100%;
+    width: 40%;
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar-slide 1.4s ease-in-out infinite;
 }

@@ -8,7 +8,7 @@ import { useLocale } from "@/lib/i18n/LocaleProvider";
 
 const copy = {
   title: { en: "Sign in", ar: "تسجيل الدخول" },
-  subtitle: { en: "TEC Innovation Professional Program", ar: "برنامج المجلس التنفيذي للابتكار" },
+  subtitle: { en: "RTA Innovation Professional Program", ar: "برنامج الابتكار المهني لهيئة الطرق والنقل" },
   email: { en: "Email", ar: "البريد الإلكتروني" },
   password: { en: "Password", ar: "كلمة المرور" },
   submit: { en: "Sign in", ar: "تسجيل الدخول" },

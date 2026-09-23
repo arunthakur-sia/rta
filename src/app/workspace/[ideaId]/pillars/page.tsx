@@ -9,5 +9,5 @@ export default async function IdeaPillarsPage({ params }: { params: Promise<{ id
 
   const assessment = idea.currentAssessmentVersion > 0 ? await getIdeaAssessment(idea.id, idea.currentAssessmentVersion) : null;
 
-  return <IdeaPillarsClient ideaId={idea.id} assessment={assessment} />;
+  return <IdeaPillarsClient idea={idea} assessment={assessment} />;
 }

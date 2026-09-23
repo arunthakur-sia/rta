@@ -17,10 +17,6 @@ export const sampleClarifyingQuestions: { dimension: IdeaDimensionName; question
       "What did the people you spoke to say in their own words? Please paste one or two quotes.",
   },
   {
-    dimension: "strategic_fit",
-    question: "Which TEC priority or team would sponsor this, and why would they care this year?",
-  },
-  {
     dimension: "value_viability",
     question:
       "If this worked perfectly, what would change in numbers: minutes saved, errors avoided, revenue, satisfaction?",
@@ -33,7 +29,7 @@ export const sampleClarifyingQuestions: { dimension: IdeaDimensionName; question
   {
     dimension: "novelty_risk",
     question:
-      "What already exists inside TEC or in the market that solves part of this, and what is different about your approach?",
+      "What already exists inside RTA or in the market that solves part of this, and what is different about your approach?",
   },
   {
     dimension: "novelty_risk",

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth/session";
-import { listAllPitches } from "@/lib/db/queries/pitches";
+import { listPitchesForOwner } from "@/lib/db/queries/pitches";
 import { getIdeaById } from "@/lib/db/queries/ideas";
 import { getServerLocale } from "@/lib/i18n/locale.server";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -13,8 +13,7 @@ import { common, t } from "@/lib/i18n/common";
 export default async function PitchesListPage() {
   const user = await requireUser();
   const locale = await getServerLocale();
-  const allPitches = await listAllPitches();
-  const pitches = allPitches.filter((p) => user.role === "program_office" || user.role === "coach" || p.ownerId === user.id);
+  const pitches = await listPitchesForOwner(user.id);
 
   const rows = await Promise.all(
     pitches.map(async (pitch) => ({
@@ -28,11 +27,9 @@ export default async function PitchesListPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-ink-900">{t(common.pitches, locale)}</h1>
-        {user.role === "participant" && (
-          <Link href="/pitches/new" className="rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600">
-            {locale === "ar" ? "عرض جديد" : "New pitch"}
-          </Link>
-        )}
+        <Link href="/pitches/new" className="rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-white hover:bg-accent-600">
+          {locale === "ar" ? "عرض جديد" : "New pitch"}
+        </Link>
       </div>
 
       {rows.length === 0 ? (
@@ -56,8 +53,8 @@ export default async function PitchesListPage() {
                 <DeleteButton
                   deleteUrl={`/api/pitches/${pitch.id}`}
                   confirmMessage={{
-                    en: "Delete this pitch and its deck, runs, mock jury answers and coach review? This cannot be undone.",
-                    ar: "حذف هذا العرض والملف والتشغيلات وإجابات هيئة المحلفين الوهمية ومراجعة المدرب؟ لا يمكن التراجع عن هذا.",
+                    en: "Delete this pitch and its deck, runs and mock jury answers? This cannot be undone.",
+                    ar: "حذف هذا العرض والملف والتشغيلات وإجابات هيئة المحلفين الوهمية؟ لا يمكن التراجع عن هذا.",
                   }}
                   className="absolute right-4 top-4 text-xs font-medium text-ink-400 hover:text-verdict-pivot"
                 />

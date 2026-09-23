@@ -15,18 +15,15 @@ import {
   answerClarification,
   getIdeaAssessment,
   getIdeaById,
-  getLatestPrototypePlan,
   nextAssessmentVersion,
   saveIdeaAssessment,
-  saveMentorReview,
   savePrototypePlan,
   setIdeaStage,
 } from "@/lib/db/queries/ideas";
 import { logAction } from "@/lib/db/queries/auditLog";
-import { derivePointsToProbe } from "./mentorBrief";
 import { ideaRecordContext, ideaSkillsBlock, roleAndBoundaries } from "./prompts";
 import type { IdeaValidationStateType } from "./state";
-import type { IdeaAssessment, IdeaVerdict, PrototypeOption, PrototypePlan } from "@/lib/types/domain";
+import type { IdeaAssessment, PrototypeOption, PrototypePlan } from "@/lib/types/domain";
 
 export interface ClarifyInterruptPayload {
   type: "clarify_question";
@@ -36,19 +33,6 @@ export interface ClarifyInterruptPayload {
   dimension: string | null;
   askedCount: number;
   maxQuestions: number;
-}
-
-export interface MentorReviewInterruptPayload {
-  type: "mentor_review_pending";
-  ideaId: string;
-  assessmentVersion: number;
-  pointsToProbe: string[];
-}
-
-export interface MentorDecisionResume {
-  mentorId: string;
-  decision: IdeaVerdict;
-  reason: string;
 }
 
 export async function intakeNode(state: IdeaValidationStateType) {
@@ -83,7 +67,7 @@ export async function clarifyNode(state: IdeaValidationStateType) {
       model: FAST_MODEL,
       system: `${roleAndBoundaries(state.locale)}
 
-Current stage: CLARIFY. Ask the single next most useful clarifying question, targeting whichever rubric dimension is least covered by the canvas, evidence and prior answers. Signal coverageComplete=true (with question and whyWeAsk set to null) once all six dimensions have enough information, or if you genuinely have nothing more useful to ask. Never repeat a question already asked. Ask only one question.`,
+Current stage: CLARIFY. Ask the single next most useful clarifying question, targeting whichever rubric dimension is least covered by the canvas, evidence and prior answers. Signal coverageComplete=true (with question and whyWeAsk set to null) once all five dimensions have enough information, or if you genuinely have nothing more useful to ask. Never repeat a question already asked. Ask only one question.`,
       cacheableSystem: ideaSkillsBlock(),
       messages: [{ role: "user", content: ideaRecordContext(idea) }],
       schema: clarifyQuestionSchema,
@@ -124,7 +108,7 @@ export async function assessNode(state: IdeaValidationStateType) {
     model: CAPABLE_MODEL,
     system: `${roleAndBoundaries(state.locale)}
 
-Current stage: ASSESS. Rate the idea on all six rubric dimensions. For each: give a 1-5 rating (or null only if truly insufficient information), quote the exact rubric anchor you are applying, list specific evidence found in the record (with a source reference such as canvas.problem or clarification.<n>), and list open questions. Then list assumptions to verify, the three most important reasons behind your overall read, and your confidence level. This is a single, careful pass — a second reviewer will check your work next, so be rigorous and evidence-driven rather than generous.`,
+Current stage: ASSESS. Rate the idea on all five rubric dimensions. For each: give a 1-5 rating (or null only if truly insufficient information), quote the exact rubric anchor you are applying, list specific evidence found in the record (with a source reference such as canvas.howItWorks or clarification.<n>), and list open questions. Then list assumptions to verify, the three most important reasons behind your overall read, and your confidence level. This is a single, careful pass — a second reviewer will check your work next, so be rigorous and evidence-driven rather than generous.`,
     cacheableSystem: ideaSkillsBlock(),
     messages: [{ role: "user", content: ideaRecordContext(idea) }],
     schema: ideaAssessmentModelOutputSchema,
@@ -141,7 +125,7 @@ export async function critiqueNode(state: IdeaValidationStateType) {
 
   const result = await runStructured({
     model: CAPABLE_MODEL,
-    system: `You are the quality-control reviewer for the TEC Idea Validation Agent's own output. The participant never sees this pass. Check the draft assessment for: ratings given without a real quoted piece of evidence, evidence that does not actually appear in the record below, contradictory ratings, and anchors that don't match the rating given. Where a rating lacks real evidence, set it to null and add an open question asking for that evidence rather than leaving an unsupported rating. Return the full corrected assessment (unchanged fields included) and a short list of what you changed, if anything.`,
+    system: `You are the quality-control reviewer for the RTA Idea Validation Agent's own output. The participant never sees this pass. Check the draft assessment for: ratings given without a real quoted piece of evidence, evidence that does not actually appear in the record below, an evidence.source citation that isn't one of the exact [bracketed] canvas keys/clarification ids/evidence ids shown in the record, contradictory ratings, and anchors that don't match the rating given. Where a rating lacks real evidence, set it to null and add an open question asking for that evidence rather than leaving an unsupported rating. Where a citation's source doesn't match a real bracketed key/id, correct it to the right one if the quoted text clearly comes from a specific record item, or drop that evidence entry otherwise. Return the full corrected assessment (unchanged fields included) and a short list of what you changed, if anything.`,
     cacheableSystem: ideaSkillsBlock(),
     messages: [
       { role: "user", content: ideaRecordContext(idea) },
@@ -206,10 +190,10 @@ export async function verdictNode(state: IdeaValidationStateType) {
   return {};
 }
 
-export async function routeAfterVerdict(state: IdeaValidationStateType): Promise<"prototype_plan" | "mentor_review"> {
+export async function routeAfterVerdict(state: IdeaValidationStateType): Promise<"prototype_plan" | "closed"> {
   const idea = (await getIdeaById(state.ideaId))!;
   const assessment = (await getIdeaAssessment(idea.id, idea.currentAssessmentVersion))!;
-  return assessment.verdict === "pivot" ? "mentor_review" : "prototype_plan";
+  return assessment.verdict === "pivot" ? "closed" : "prototype_plan";
 }
 
 export async function prototypePlanNode(state: IdeaValidationStateType) {
@@ -240,52 +224,6 @@ Current stage: PROTOTYPE_PLAN. Identify the riskiest assumption behind this idea
     createdAt: new Date().toISOString(),
   };
   await savePrototypePlan(plan);
-
-  return {};
-}
-
-export async function mentorReviewNode(state: IdeaValidationStateType) {
-  const idea = (await getIdeaById(state.ideaId))!;
-  // Derived from a stable DB timestamp (not `new Date()`) because LangGraph
-  // replays this node function from the top on every resume — only the
-  // `interrupt()` call's return value is cached, so any local `new Date()`
-  // read before it would be re-evaluated at resume time, not pause time.
-  const openedAt = idea.updatedAt;
-  await setIdeaStage(idea.id, "mentor_review");
-  const assessment = (await getIdeaAssessment(idea.id, idea.currentAssessmentVersion))!;
-  const plan = await getLatestPrototypePlan(idea.id);
-  // Computed before the interrupt so the mentor brief is part of what the
-  // mentor sees while deciding, not just a record of the decision.
-  const pointsToProbe = derivePointsToProbe(assessment, plan, state.locale);
-
-  const decision = interrupt<MentorReviewInterruptPayload, MentorDecisionResume>({
-    type: "mentor_review_pending",
-    ideaId: idea.id,
-    assessmentVersion: assessment.version,
-    pointsToProbe,
-  });
-
-  const decidedAt = new Date().toISOString();
-  const minutesToDecide = Math.max(0, (new Date(decidedAt).getTime() - new Date(openedAt).getTime()) / 60000);
-
-  await saveMentorReview({
-    ideaId: idea.id,
-    assessmentVersion: assessment.version,
-    mentorId: decision.mentorId,
-    decision: decision.decision,
-    overrodeAgent: decision.decision !== assessment.verdict,
-    reason: decision.reason,
-    pointsToProbe,
-    decidedAt,
-    minutesToDecide,
-  });
-  await logAction({
-    entityType: "idea",
-    entityId: idea.id,
-    actorId: decision.mentorId,
-    action: "mentor_review",
-    detail: `${decision.decision}${decision.decision !== assessment.verdict ? " (override)" : ""}: ${decision.reason}`,
-  });
 
   return {};
 }

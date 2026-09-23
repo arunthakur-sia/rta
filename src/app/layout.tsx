@@ -10,8 +10,8 @@ const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
 const notoArabic = Noto_Sans_Arabic({ variable: "--font-noto-arabic", subsets: ["arabic"] });
 
 export const metadata: Metadata = {
-  title: "TEC Innovation Program",
-  description: "Idea Validation and Pitch Validation agents for the TEC Innovation Professional Program",
+  title: "RTA Innovation Program",
+  description: "Idea Validation and Pitch Validation agents for the RTA Innovation Professional Program",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -6,7 +6,6 @@ import type {
   IdeaAssessment,
   IdeaCanvas,
   IdeaStage,
-  MentorReview,
   PrototypePlan,
   TeamProfile,
 } from "@/lib/types/domain";
@@ -19,7 +18,6 @@ interface IdeaRow {
   team: TeamProfile;
   stage: IdeaStage;
   current_assessment_version: number;
-  mentor_id: string | null;
   language: "en" | "ar";
   created_at: string;
   updated_at: string;
@@ -34,7 +32,6 @@ function rowToIdeaBase(row: IdeaRow): Omit<Idea, "evidence" | "clarifications"> 
     team: row.team,
     stage: row.stage,
     currentAssessmentVersion: row.current_assessment_version,
-    mentorId: row.mentor_id,
     language: row.language,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -90,18 +87,6 @@ export async function listIdeasForOwner(ownerId: string): Promise<Idea[]> {
   return Promise.all(rows.map(assembleIdea));
 }
 
-export async function listAllIdeas(): Promise<Idea[]> {
-  const db = getSupabase();
-  const rows = unwrap(await db.from("ideas").select("*").order("updated_at", { ascending: false })) as IdeaRow[];
-  return Promise.all(rows.map(assembleIdea));
-}
-
-export async function listIdeasForMentor(mentorId: string): Promise<Idea[]> {
-  const db = getSupabase();
-  const rows = unwrap(await db.from("ideas").select("*").eq("mentor_id", mentorId).order("updated_at", { ascending: false })) as IdeaRow[];
-  return Promise.all(rows.map(assembleIdea));
-}
-
 export async function updateIdeaCanvas(id: string, canvas: IdeaCanvas, team: TeamProfile): Promise<void> {
   const db = getSupabase();
   const { error } = await db.from("ideas").update({ canvas, team, updated_at: new Date().toISOString() }).eq("id", id);
@@ -111,12 +96,6 @@ export async function updateIdeaCanvas(id: string, canvas: IdeaCanvas, team: Tea
 export async function setIdeaStage(id: string, stage: IdeaStage): Promise<void> {
   const db = getSupabase();
   const { error } = await db.from("ideas").update({ stage, updated_at: new Date().toISOString() }).eq("id", id);
-  if (error) throw new Error(`Supabase error: ${error.message}`);
-}
-
-export async function assignMentor(id: string, mentorId: string): Promise<void> {
-  const db = getSupabase();
-  const { error } = await db.from("ideas").update({ mentor_id: mentorId, updated_at: new Date().toISOString() }).eq("id", id);
   if (error) throw new Error(`Supabase error: ${error.message}`);
 }
 
@@ -348,58 +327,4 @@ export async function getLatestPrototypePlan(ideaId: string): Promise<PrototypeP
     .maybeSingle();
   if (error) throw new Error(`Supabase error: ${error.message}`);
   return data ? rowToPrototypePlan(data as PrototypePlanRow) : null;
-}
-
-// -- Mentor reviews --
-
-interface MentorReviewRow {
-  idea_id: string;
-  assessment_version: number;
-  mentor_id: string;
-  decision: MentorReview["decision"];
-  overrode_agent: boolean;
-  reason: string;
-  points_to_probe: string[];
-  decided_at: string;
-  minutes_to_decide: number;
-}
-
-export async function saveMentorReview(review: MentorReview): Promise<void> {
-  const db = getSupabase();
-  const { error } = await db.from("idea_mentor_reviews").insert({
-    idea_id: review.ideaId,
-    assessment_version: review.assessmentVersion,
-    mentor_id: review.mentorId,
-    decision: review.decision,
-    overrode_agent: review.overrodeAgent,
-    reason: review.reason,
-    points_to_probe: review.pointsToProbe,
-    decided_at: review.decidedAt,
-    minutes_to_decide: review.minutesToDecide,
-  });
-  if (error) throw new Error(`Supabase error: ${error.message}`);
-}
-
-export async function getMentorReview(ideaId: string, assessmentVersion: number): Promise<MentorReview | null> {
-  const db = getSupabase();
-  const { data, error } = await db
-    .from("idea_mentor_reviews")
-    .select("*")
-    .eq("idea_id", ideaId)
-    .eq("assessment_version", assessmentVersion)
-    .maybeSingle();
-  if (error) throw new Error(`Supabase error: ${error.message}`);
-  if (!data) return null;
-  const row = data as MentorReviewRow;
-  return {
-    ideaId: row.idea_id,
-    assessmentVersion: row.assessment_version,
-    mentorId: row.mentor_id,
-    decision: row.decision,
-    overrodeAgent: row.overrode_agent,
-    reason: row.reason,
-    pointsToProbe: row.points_to_probe,
-    decidedAt: row.decided_at,
-    minutesToDecide: row.minutes_to_decide,
-  };
 }

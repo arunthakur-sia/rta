@@ -27,8 +27,8 @@ export default async function PitchLayout({
             deleteUrl={`/api/pitches/${pitch.id}`}
             redirectTo="/pitches"
             confirmMessage={{
-              en: "Delete this pitch and its deck, runs, mock jury answers and coach review? This cannot be undone.",
-              ar: "حذف هذا العرض والملف والتشغيلات وإجابات هيئة المحلفين الوهمية ومراجعة المدرب؟ لا يمكن التراجع عن هذا.",
+              en: "Delete this pitch and its deck, runs and mock jury answers? This cannot be undone.",
+              ar: "حذف هذا العرض والملف والتشغيلات وإجابات هيئة المحلفين الوهمية؟ لا يمكن التراجع عن هذا.",
             }}
           />
         )}

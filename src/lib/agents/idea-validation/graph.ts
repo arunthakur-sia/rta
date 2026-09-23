@@ -6,16 +6,17 @@ import {
   closedNode,
   critiqueNode,
   intakeNode,
-  mentorReviewNode,
   prototypePlanNode,
   routeAfterClarify,
   routeAfterVerdict,
   verdictNode,
 } from "./nodes";
 
-// Mirrors the plan's own state machine exactly:
-// intake -> clarify -> assess -> critique -> verdict -> prototype_plan -> mentor_review -> closed
-// (Pivot verdicts skip prototype_plan and go straight to mentor_review.)
+// Mirrors the plan's own state machine, minus the human mentor-review gate:
+// intake -> clarify -> assess -> critique -> verdict -> prototype_plan -> closed
+// (Pivot verdicts skip prototype_plan and go straight to closed.) The
+// agent's verdict is final automatically — there is no separate mentor
+// account to confirm or override it.
 // "clarify" is a self-loop — one question per visit, see clarifyNode's comment.
 const builder = new StateGraph(IdeaValidationState)
   .addNode("intake", intakeNode)
@@ -24,16 +25,14 @@ const builder = new StateGraph(IdeaValidationState)
   .addNode("critique", critiqueNode)
   .addNode("verdict", verdictNode)
   .addNode("prototype_plan", prototypePlanNode)
-  .addNode("mentor_review", mentorReviewNode)
   .addNode("closed", closedNode)
   .addEdge(START, "intake")
   .addEdge("intake", "clarify")
   .addConditionalEdges("clarify", routeAfterClarify, ["clarify", "assess"])
   .addEdge("assess", "critique")
   .addEdge("critique", "verdict")
-  .addConditionalEdges("verdict", routeAfterVerdict, ["prototype_plan", "mentor_review"])
-  .addEdge("prototype_plan", "mentor_review")
-  .addEdge("mentor_review", "closed")
+  .addConditionalEdges("verdict", routeAfterVerdict, ["prototype_plan", "closed"])
+  .addEdge("prototype_plan", "closed")
   .addEdge("closed", END);
 
 // A process-lifetime checkpointer: durable domain data (the idea record,

@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/session";
-import { getIdeaAssessment, getIdeaById, getMentorReview } from "@/lib/db/queries/ideas";
-import { phaseForIdea } from "@/lib/agents/idea-validation/phase";
-import { PhaseStepper } from "@/components/layout/PhaseStepper";
+import { getIdeaById } from "@/lib/db/queries/ideas";
 import { IdeaSubNav } from "@/components/idea/IdeaSubNav";
 import { DeleteButton } from "@/components/ui/DeleteButton";
 
@@ -18,14 +16,10 @@ export default async function IdeaLayout({
   const idea = await getIdeaById(ideaId);
   if (!idea) notFound();
 
-  const assessment = idea.currentAssessmentVersion > 0 ? await getIdeaAssessment(idea.id, idea.currentAssessmentVersion) : null;
-  const mentorReview = assessment ? await getMentorReview(idea.id, assessment.version) : null;
-
   return (
     // Breaks out of AppShell's max-w-7xl so the sidebar + content have room on wide screens.
     <div className="mx-[calc(50%-50vw)] w-screen">
       <div className="mx-auto max-w-[1600px] space-y-6 px-4 sm:px-6">
-        <PhaseStepper activePhase={phaseForIdea(idea, mentorReview)} />
         <div className="flex items-center justify-between gap-3">
           <h1 className="text-xl font-semibold text-ink-900">{idea.title}</h1>
           {idea.ownerId === user.id && (

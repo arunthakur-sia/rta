@@ -1,13 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/session";
-import {
-  deleteIdea,
-  getIdeaAssessment,
-  getIdeaById,
-  getLatestPrototypePlan,
-  getMentorReview,
-  updateIdeaCanvas,
-} from "@/lib/db/queries/ideas";
+import { deleteIdea, getIdeaAssessment, getIdeaById, getLatestPrototypePlan, updateIdeaCanvas } from "@/lib/db/queries/ideas";
 import { listAuditLog } from "@/lib/db/queries/auditLog";
 import type { IdeaCanvas, TeamProfile } from "@/lib/types/domain";
 
@@ -25,9 +18,8 @@ export async function GET(_request: Request, { params }: Params) {
     getLatestPrototypePlan(idea.id),
     listAuditLog("idea", idea.id),
   ]);
-  const mentorReview = assessment ? await getMentorReview(idea.id, assessment.version) : null;
 
-  return NextResponse.json({ idea, assessment, mentorReview, prototypePlan, auditLog });
+  return NextResponse.json({ idea, assessment, prototypePlan, auditLog });
 }
 
 export async function PATCH(request: Request, { params }: Params) {

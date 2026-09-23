@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { PriorityBadge } from "@/components/ui/Badge";
+import { Markdown } from "@/components/ui/Markdown";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import { priorityLabels, label } from "@/lib/skills/glossary";
 import { cn } from "@/lib/utils";
@@ -85,10 +86,11 @@ export function PitchStudioView({ slides, comments }: { slides: Slide[]; comment
                   <PriorityBadge priority={c.priority} label={label(priorityLabels[c.priority], locale)} />
                 </div>
                 <p className="italic text-ink-600">&ldquo;{c.quote}&rdquo;</p>
-                <p className="text-ink-800">{c.issue}</p>
-                <p className="text-xs text-ink-500">
-                  {t(copy.rewrite, locale)}: {c.rewrite}
-                </p>
+                <Markdown className="text-ink-800">{c.issue}</Markdown>
+                <div className="text-xs text-ink-500">
+                  <span className="font-medium">{t(copy.rewrite, locale)}:</span>
+                  <Markdown className="text-xs text-ink-500">{c.rewrite}</Markdown>
+                </div>
               </CardBody>
             </Card>
           ))

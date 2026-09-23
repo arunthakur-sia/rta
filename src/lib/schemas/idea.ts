@@ -7,7 +7,6 @@ import { z } from "zod";
 export const ideaDimensionNameSchema = z.enum([
   "problem_clarity",
   "user_evidence",
-  "strategic_fit",
   "value_viability",
   "feasibility",
   "novelty_risk",
@@ -16,7 +15,9 @@ export const ideaDimensionNameSchema = z.enum([
 export const evidenceRefSchema = z.object({
   source: z
     .string()
-    .describe("canvas.field | clarification.<id> | evidence.<id> | web"),
+    .describe(
+      "The exact citation key from the record above — canvas.<fieldKey> (e.g. canvas.howItWorks), clarification.<id>, or evidence.<id>, copied verbatim from the [brackets] shown next to that field/clarification/evidence item, never invented or guessed. Use \"web\" only for a cited external source."
+    ),
   quote: z.string(),
   // OpenAI-compatible structured outputs require every object property to
   // be present in the schema's `required` list — z.optional() alone omits
@@ -43,12 +44,12 @@ export const dimensionRatingSchema = z.object({
 
 export const ideaAssessmentModelOutputSchema = z.object({
   language: z.enum(["en", "ar"]),
-  // Not `.length(6)`: this gateway's structured-output backend (Bedrock's
+  // Not `.length(5)`: this gateway's structured-output backend (Bedrock's
   // native structured outputs) only allows array minItems of 0 or 1, so an
   // exact-length constraint is rejected outright. Exactness is enforced by
-  // the prompt instruction ("rate the idea on all six rubric dimensions")
+  // the prompt instruction ("rate the idea on all five rubric dimensions")
   // instead — the critique pass is the remaining backstop.
-  dimensions: z.array(dimensionRatingSchema).describe("Exactly six entries, one per rubric dimension"),
+  dimensions: z.array(dimensionRatingSchema).describe("Exactly five entries, one per rubric dimension"),
   assumptionsToVerify: z.array(z.string()),
   // minItems=1 is allowed (Bedrock only rejects values other than 0/1);
   // maxItems is rejected outright at any value, so no `.max()` here.
@@ -61,7 +62,7 @@ export type IdeaAssessmentModelOutput = z.infer<typeof ideaAssessmentModelOutput
 export const clarifyQuestionSchema = z.object({
   coverageComplete: z
     .boolean()
-    .describe("true if all six dimensions now have enough information and no more questions are needed"),
+    .describe("true if all five dimensions now have enough information and no more questions are needed"),
   question: z.string().nullable().describe("The next question to ask, or null if coverageComplete is true"),
   whyWeAsk: z.string().nullable().describe("One short line explaining why this question matters"),
   targetDimension: ideaDimensionNameSchema.nullable(),
@@ -107,6 +108,33 @@ export const pivotReframingsSchema = z.object({
   // constraint. Enforced by prompt instruction instead.
   reframings: z.array(z.string()).describe("Exactly two adjacent problem framings"),
 });
+
+export const whatMustChangeAutofillSchema = z.object({
+  customerCommunication: z.string().nullable(),
+  processOrServiceRules: z.string().nullable(),
+  digitalCapability: z.string().nullable(),
+  operationsAndEcosystem: z.string().nullable(),
+});
+
+// Output of the canvas-autofill pass: extracts whatever the source
+// document (docx/pdf text, or an image sent as a vision input) actually
+// contains. Every field nullable, not optional — same Bedrock
+// structured-output constraint as the schemas above — so the model must
+// explicitly say "not present" rather than omit a field.
+export const ideaCanvasAutofillSchema = z.object({
+  ideaTitle: z.string().nullable().describe("The idea's name/title, if present in the document"),
+  tableTheme: z.string().nullable(),
+  prioritisedChallenge: z.string().nullable(),
+  howItWorks: z.string().nullable(),
+  whyItImprovesAdoption: z.string().nullable(),
+  currentExperience: z.string().nullable(),
+  proposedExperience: z.string().nullable(),
+  whatMustChange: whatMustChangeAutofillSchema,
+  assumptionsRisksDependencies: z.string().nullable(),
+  expectedImpact: z.number().nullable().describe("0-5, if a score is given in the document"),
+  implementationFeasibility: z.number().nullable().describe("0-5, if a score is given in the document"),
+});
+export type IdeaCanvasAutofillOutput = z.infer<typeof ideaCanvasAutofillSchema>;
 
 // Phase 4 follow-up mode: a lighter weekly check-in, outside the main graph.
 export const followUpCheckInSchema = z.object({

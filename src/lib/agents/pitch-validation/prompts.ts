@@ -3,17 +3,19 @@ import { templateSectionLabels, label } from "@/lib/skills/glossary";
 import type { Idea, IdeaAssessment, Pitch, PrototypePlan } from "@/lib/types/domain";
 
 export function roleAndBoundaries(locale: "en" | "ar"): string {
-  return `You are the TEC Pitch Validation Agent, a coach preparing teams in the TEC Innovation Professional Program for Demo Day.
+  return `You are the RTA Pitch Validation Agent, a coach preparing teams in the RTA Innovation Professional Program for Demo Day.
 
-What you do: critique deck structure and content slide by slide, check the pitch is consistent with what was actually validated and built, run a mock jury, and produce a readiness score.
+What you do: critique deck structure and content slide by slide, check the pitch is consistent with what was actually validated and built, run a mock jury, and produce a final readiness score and verdict.
 
-What you do not do: you never rank teams against each other and you never predict what the real jury will decide. The human coach always confirms Demo Day readiness — you only recommend.
+What you do not do: you never rank teams against each other and you never predict what the real jury will decide.
 
 Every comment must be anchored to a specific slide and a quoted element. This build has no live web search tool — never invent statistics, market data or competitor names.
 
 Reply in ${locale === "ar" ? "Arabic" : "English"}. Keep the same language for the whole session.
 
-Tone: direct, specific, encouraging. Every critical point should be paired with a concrete rewrite or next step.`;
+Tone: direct, specific, encouraging. Every critical point should be paired with a concrete rewrite or next step.
+
+Formatting: write free-text fields as clean markdown — **bold** for emphasis, numbered or bulleted lists for multiple points, short paragraphs. Never use an em dash or en dash (— or –); use a period, comma, or "and" instead.`;
 }
 
 export function pitchSkillsBlock(locale: "en" | "ar"): string {
@@ -22,10 +24,10 @@ export function pitchSkillsBlock(locale: "en" | "ar"): string {
     .join("\n");
   const templateText = pitchTemplateSections.map((s) => `- ${s}: ${label(templateSectionLabels[s], locale)}`).join("\n");
 
-  return `## TEC pitch rubric (seven dimensions)
+  return `## RTA pitch rubric (seven dimensions)
 ${rubricText}
 
-## TEC pitch template sections (map every slide to exactly one)
+## RTA pitch template sections (map every slide to exactly one)
 ${templateText}
 
 ## Demo Day format
@@ -59,12 +61,12 @@ export function ideaRecordSummary(idea: Idea, assessment: IdeaAssessment | null,
   const evidenceText = idea.evidence.map((e) => `- [${e.kind}] ${e.content}`).join("\n");
 
   return `## Validated idea record (from Agent 1)
-Problem: ${idea.canvas.problem}
-Affected users: ${idea.canvas.affectedUsers}
-Current workaround: ${idea.canvas.currentWorkaround}
-Proposed solution: ${idea.canvas.proposedSolution}
-Expected value: ${idea.canvas.expectedValue}
-Known risks: ${idea.canvas.knownRisks}
+Prioritised challenge: ${idea.canvas.prioritisedChallenge}
+How it works: ${idea.canvas.howItWorks}
+Why it should improve adoption: ${idea.canvas.whyItImprovesAdoption}
+Current experience (today): ${idea.canvas.currentExperience}
+Proposed experience: ${idea.canvas.proposedExperience}
+Key assumptions, risks and dependencies: ${idea.canvas.assumptionsRisksDependencies}
 ${assessment ? `Verdict: ${assessment.verdict} (score ${assessment.weightedScore})\nTop reasons: ${assessment.topReasons.join("; ")}` : "(no assessment on file)"}
 ${plan ? `Prototype tested: ${plan.primary.type} — riskiest assumption: ${plan.riskiestAssumption}\nTest protocol: ${plan.primary.test.protocol}, threshold: ${plan.primary.test.successThreshold}` : "(no prototype plan on file)"}
 
