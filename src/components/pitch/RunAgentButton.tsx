@@ -3,13 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
+import { CyclingStatus } from "@/components/ui/CyclingStatus";
 import { useLocale } from "@/lib/i18n/LocaleProvider";
 import type { PitchSessionInterrupt } from "@/lib/agents/pitch-validation/runner";
 
 const copy = {
   run: { en: "Run agent", ar: "تشغيل العامل" },
   rerun: { en: "Re-run (new version)", ar: "إعادة التشغيل (نسخة جديدة)" },
-  working: { en: "Running structure, content, coherence, mock jury and readiness…", ar: "جارٍ تنفيذ البنية والمحتوى والاتساق ولجنة التحكيم والجاهزية…" },
+  working: { en: "Working…", ar: "جارٍ العمل…" },
+  workingNote: { en: "This can take up to a minute.", ar: "قد يستغرق ذلك حتى دقيقة." },
+};
+
+const runningSteps = {
+  en: ["Checking structure…", "Reviewing content…", "Checking coherence…"],
+  ar: ["التحقق من البنية…", "مراجعة المحتوى…", "التحقق من الاتساق…"],
 };
 
 function t(entry: { en: string; ar: string }, locale: "en" | "ar") {
@@ -43,10 +51,14 @@ export function RunAgentButton({ pitchId, isRerun }: { pitchId: string; isRerun?
 
   return (
     <div className="space-y-2">
-      {running ? (
-        <p className="text-sm text-accent-700">{t(copy.working, locale)}</p>
-      ) : (
-        <Button onClick={run}>{t(isRerun ? copy.rerun : copy.run, locale)}</Button>
+      <Button onClick={run} disabled={running}>
+        {running && <Spinner />}
+        {running ? t(copy.working, locale) : t(isRerun ? copy.rerun : copy.run, locale)}
+      </Button>
+      {running && (
+        <p className="text-sm text-ink-500">
+          <CyclingStatus messages={runningSteps[locale]} /> {t(copy.workingNote, locale)}
+        </p>
       )}
       {error && <p className="text-sm text-verdict-refine">{error}</p>}
     </div>
