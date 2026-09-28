@@ -1,5 +1,5 @@
 import { Command, INTERRUPT, isInterrupted } from "@langchain/langgraph";
-import { getPitchById } from "@/lib/db/queries/pitches";
+import { getPitchById, getPitchRun } from "@/lib/db/queries/pitches";
 import { juryPersonas, MOCK_JURY_QUESTION_COUNT } from "@/lib/skills/pitchRubric";
 import { pitchValidationGraph } from "./graph";
 import { evaluateMockJuryAnswer } from "./nodes";
@@ -27,7 +27,17 @@ function extractInterrupt(result: unknown): PitchSessionInterrupt | undefined {
 export async function startPitchValidationRun(pitchId: string): Promise<PitchSessionResult> {
   const pitch = await getPitchById(pitchId);
   if (!pitch) throw new Error("Pitch not found");
-  const result = await pitchValidationGraph.invoke({ pitchId, locale: pitch.language }, threadConfig(pitchId));
+
+  // On a re-run, carry forward whatever the participant marked done on the previous run so
+  // readinessNode can check those specific issues against the newly uploaded deck (see
+  // nodes.ts) instead of the score silently drifting on an unchanged/untracked list.
+  const previousRun = pitch.currentRunVersion > 0 ? await getPitchRun(pitchId, pitch.currentRunVersion) : null;
+  const priorDoneActions = previousRun?.actions?.filter((a) => a.done) ?? [];
+
+  const result = await pitchValidationGraph.invoke(
+    { pitchId, locale: pitch.language, priorDoneActions },
+    threadConfig(pitchId)
+  );
   const interrupt = extractInterrupt(result);
   return interrupt ? { status: "interrupted", interrupt } : { status: "completed" };
 }

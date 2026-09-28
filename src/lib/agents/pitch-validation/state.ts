@@ -1,5 +1,5 @@
 import { Annotation } from "@langchain/langgraph";
-import type { CoherenceRow, PitchDimensionRating, SlideComment, StructureResult } from "@/lib/types/domain";
+import type { CoherenceRow, PitchDimensionRating, ReadinessAction, SlideComment, StructureResult } from "@/lib/types/domain";
 
 // As with the idea-validation graph, the pitch record in SQLite is the
 // durable source of truth. This state carries partial results between the
@@ -19,6 +19,9 @@ export const PitchValidationState = Annotation.Root({
   comments: Annotation<SlideComment[]>({ reducer: (_p, n) => n, default: () => [] }),
   coherenceRows: Annotation<CoherenceRow[]>({ reducer: (_p, n) => n, default: () => [] }),
   dimensions: Annotation<PitchDimensionRating[]>({ reducer: (_p, n) => n, default: () => [] }),
+  // Set once at invoke time (see runner.ts) from the previous run's actions marked done, so
+  // readinessNode can verify them against the newly re-run deck instead of just trusting them.
+  priorDoneActions: Annotation<ReadinessAction[]>({ reducer: (_p, n) => n, default: () => [] }),
 });
 
 export type PitchValidationStateType = typeof PitchValidationState.State;

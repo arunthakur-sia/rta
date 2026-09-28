@@ -108,3 +108,16 @@ export const mockJuryEvaluationSchema = z.object({
   modelAnswer: z.string().describe("A model answer for comparison"),
 });
 export type MockJuryEvaluationOutput = z.infer<typeof mockJuryEvaluationSchema>;
+
+// -- Action verification (re-run only): checks issues the participant marked
+// done against the newly uploaded deck, rather than trusting the checkbox.
+export const actionVerificationSchema = z.object({
+  results: z.array(
+    z.object({
+      index: z.number().describe("Index into the list of previously flagged issues, in the order given"),
+      resolved: z.boolean().describe("True only if the current deck clearly addresses this issue now"),
+      evidence: z.string().describe("What in the current deck was checked, or why it's still unresolved"),
+    })
+  ),
+});
+export type ActionVerificationOutput = z.infer<typeof actionVerificationSchema>;

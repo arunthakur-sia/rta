@@ -8,6 +8,7 @@ interface PitchRow {
   owner_id: string;
   deck_file_name: string | null;
   deck_storage_path: string | null;
+  deck_version: number;
   slides: Slide[];
   parse_confirmed: boolean;
   script: string | null;
@@ -26,6 +27,7 @@ function rowToPitchBase(row: PitchRow): Omit<Pitch, "mockJuryLog"> {
     ownerId: row.owner_id,
     deckFileName: row.deck_file_name,
     deckStoragePath: row.deck_storage_path,
+    deckVersion: row.deck_version,
     slides: row.slides,
     parseConfirmed: row.parse_confirmed,
     script: row.script,
@@ -89,11 +91,17 @@ export async function listPitchesForOwner(ownerId: string): Promise<Pitch[]> {
   return Promise.all(rows.map(assemblePitch));
 }
 
+/**
+ * Bumps deck_version on every upload (not just the first), so a re-run can be blocked until a
+ * newer deck has actually been uploaded since the current run — see the pitch run route and
+ * ReadinessDashboard, which compare this against the current run's recorded deck_version.
+ */
 export async function saveUploadedDeck(
   pitchId: string,
   fileName: string,
   slides: Slide[],
-  script: string | null
+  script: string | null,
+  previousDeckVersion: number
 ): Promise<void> {
   const db = getSupabase();
   const { error } = await db
@@ -103,6 +111,7 @@ export async function saveUploadedDeck(
       slides,
       script,
       parse_confirmed: false,
+      deck_version: previousDeckVersion + 1,
       updated_at: new Date().toISOString(),
     })
     .eq("id", pitchId);
@@ -202,9 +211,11 @@ interface PitchRunRow {
   coherence: PitchRun["coherence"];
   dimensions: PitchRun["dimensions"];
   actions: PitchRun["actions"];
+  resolved_actions: PitchRun["resolvedActions"];
   readiness_score: PitchRun["readinessScore"];
   verdict: PitchRun["verdict"];
   hard_rule_triggered: string | null;
+  deck_version: number;
   created_at: string;
 }
 
@@ -218,9 +229,11 @@ function rowToPitchRun(r: PitchRunRow): PitchRun {
     coherence: r.coherence,
     dimensions: r.dimensions,
     actions: r.actions,
+    resolvedActions: r.resolved_actions,
     readinessScore: r.readiness_score,
     verdict: r.verdict,
     hardRuleTriggered: r.hard_rule_triggered,
+    deckVersion: r.deck_version,
     createdAt: r.created_at,
   };
 }
@@ -243,9 +256,11 @@ export async function savePitchRun(run: PitchRun): Promise<void> {
       coherence: run.coherence,
       dimensions: run.dimensions,
       actions: run.actions,
+      resolved_actions: run.resolvedActions,
       readiness_score: run.readinessScore,
       verdict: run.verdict,
       hard_rule_triggered: run.hardRuleTriggered,
+      deck_version: run.deckVersion,
       created_at: run.createdAt,
     },
     { onConflict: "pitch_id,version" }
@@ -256,6 +271,18 @@ export async function savePitchRun(run: PitchRun): Promise<void> {
     .update({ current_run_version: run.version, updated_at: run.createdAt })
     .eq("id", run.pitchId);
   if (updateError) throw new Error(`Supabase error: ${updateError.message}`);
+}
+
+/** Persists the "done" checkbox on a prioritised action server-side — it used to be pure
+ * client-side React state that was silently discarded on refresh or re-run (see
+ * ReadinessDashboard.tsx), so a re-run had no idea what the participant had addressed. */
+export async function setActionDone(pitchId: string, version: number, priority: number, done: boolean): Promise<void> {
+  const db = getSupabase();
+  const run = await getPitchRun(pitchId, version);
+  if (!run?.actions) throw new Error("No actions to update for this run");
+  const actions = run.actions.map((a) => (a.priority === priority ? { ...a, done } : a));
+  const { error } = await db.from("pitch_runs").update({ actions }).eq("pitch_id", pitchId).eq("version", version);
+  if (error) throw new Error(`Supabase error: ${error.message}`);
 }
 
 export async function getPitchRun(pitchId: string, version: number): Promise<PitchRun | null> {

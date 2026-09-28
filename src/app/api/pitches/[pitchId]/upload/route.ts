@@ -31,7 +31,13 @@ export async function POST(request: Request, { params }: Params) {
     throw err;
   }
 
-  await saveUploadedDeck(pitchId, file.name, slides, typeof script === "string" && script.trim() ? script.trim() : null);
+  await saveUploadedDeck(
+    pitchId,
+    file.name,
+    slides,
+    typeof script === "string" && script.trim() ? script.trim() : null,
+    pitch.deckVersion
+  );
   await setPitchStage(pitchId, "parse_check");
 
   return NextResponse.json({ pitch: await getPitchById(pitchId) });

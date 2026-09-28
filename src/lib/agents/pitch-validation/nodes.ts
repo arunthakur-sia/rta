@@ -2,6 +2,7 @@ import { interrupt } from "@langchain/langgraph";
 import { runStructured } from "@/lib/llm/structured";
 import { CAPABLE_MODEL, FAST_MODEL, MAX_OUTPUT_TOKENS } from "@/lib/llm/models";
 import {
+  actionVerificationSchema,
   coherenceOutputSchema,
   contentOutputSchema,
   mockJuryEvaluationSchema,
@@ -24,7 +25,7 @@ import { getIdeaAssessment, getIdeaById, getLatestPrototypePlan } from "@/lib/db
 import { logAction } from "@/lib/db/queries/auditLog";
 import { deckContext, ideaRecordSummary, pitchSkillsBlock, roleAndBoundaries } from "./prompts";
 import type { PitchValidationStateType } from "./state";
-import type { MockJuryTurn, Pitch, PitchDimensionRating, PitchRun, SlideComment } from "@/lib/types/domain";
+import type { MockJuryTurn, Pitch, PitchDimensionRating, PitchRun, ReadinessAction, SlideComment } from "@/lib/types/domain";
 
 async function loadContext(pitchId: string) {
   const pitch = (await getPitchById(pitchId))!;
@@ -82,9 +83,11 @@ export async function structureNode(state: PitchValidationStateType) {
     coherence: [],
     dimensions: null,
     actions: null,
+    resolvedActions: null,
     readinessScore: null,
     verdict: null,
     hardRuleTriggered: null,
+    deckVersion: pitch.deckVersion,
     createdAt: new Date().toISOString(),
   });
 
@@ -117,9 +120,11 @@ export async function contentNode(state: PitchValidationStateType) {
     coherence: [],
     dimensions: null,
     actions: null,
+    resolvedActions: null,
     readinessScore: null,
     verdict: null,
     hardRuleTriggered: null,
+    deckVersion: pitch.deckVersion,
     createdAt: new Date().toISOString(),
   });
 
@@ -149,9 +154,11 @@ export async function coherenceNode(state: PitchValidationStateType) {
     coherence: result.rows,
     dimensions: null,
     actions: null,
+    resolvedActions: null,
     readinessScore: null,
     verdict: null,
     hardRuleTriggered: null,
+    deckVersion: pitch.deckVersion,
     createdAt: new Date().toISOString(),
   });
 
@@ -264,6 +271,65 @@ export async function routeAfterMockJury(state: PitchValidationStateType): Promi
   return pitch.mockJuryLog.length >= MOCK_JURY_QUESTION_COUNT ? "readiness" : "mock_jury";
 }
 
+/**
+ * Checks prior-run actions the participant marked "done" against the deck this run just
+ * analyzed, rather than trusting the checkbox (which used to be discarded client-side
+ * entirely — see ReadinessDashboard.tsx). Confirmed fixes move to `resolvedActions`; the rest
+ * are surfaced back in `actions` tagged "unresolved" so the participant sees why the score
+ * didn't move, instead of it looking like unexplained drift.
+ */
+async function verifyPriorDoneActions(
+  pitch: Pitch,
+  priorDoneActions: ReadinessAction[],
+  actions: ReadinessAction[]
+): Promise<{ actions: ReadinessAction[]; resolvedActions: ReadinessAction[] }> {
+  if (priorDoneActions.length === 0) return { actions, resolvedActions: [] };
+
+  const verification = await runStructured({
+    model: FAST_MODEL,
+    system:
+      "You are checking a revised pitch deck against a list of issues the participant claims to have fixed. For each one, decide whether the CURRENT deck below clearly addresses it now. Be strict — only mark resolved when the fix is actually present, not just implied.",
+    messages: [
+      {
+        role: "user",
+        content: `${deckContext(pitch)}\n\nPreviously flagged issues marked as fixed:\n${priorDoneActions
+          .map((a, i) => `${i}. ${a.text}`)
+          .join("\n")}`,
+      },
+    ],
+    schema: actionVerificationSchema,
+    maxTokens: MAX_OUTPUT_TOKENS,
+    usage: { userId: pitch.ownerId, ideaId: pitch.ideaId, pitchId: pitch.id, stage: "pitch.action_verification" },
+  });
+
+  const remaining = [...actions];
+  const resolvedActions: ReadinessAction[] = [];
+
+  for (const r of verification.results) {
+    const prior = priorDoneActions[r.index];
+    if (!prior) continue;
+
+    if (r.resolved) {
+      resolvedActions.push({ ...prior, verification: "resolved" });
+      const dupeIndex = remaining.findIndex((a) => a.link === prior.link && a.dimension === prior.dimension);
+      if (dupeIndex >= 0) remaining.splice(dupeIndex, 1);
+    } else {
+      const stillListed = remaining.find((a) => a.link === prior.link && a.dimension === prior.dimension);
+      if (stillListed) {
+        stillListed.verification = "unresolved";
+      } else {
+        remaining.push({ ...prior, done: false, verification: "unresolved" });
+      }
+    }
+  }
+
+  const reordered = [...remaining].sort((a, b) => Number(b.verification === "unresolved") - Number(a.verification === "unresolved"));
+  return {
+    actions: reordered.slice(0, 10).map((a, i) => ({ ...a, priority: i + 1 })),
+    resolvedActions,
+  };
+}
+
 export async function readinessNode(state: PitchValidationStateType) {
   const { pitch, idea, assessment, plan } = await loadContext(state.pitchId);
   await setPitchStage(pitch.id, "readiness");
@@ -290,7 +356,8 @@ export async function readinessNode(state: PitchValidationStateType) {
 
   const dimensions = result.dimensions as PitchDimensionRating[];
   const { readinessScore, verdict, hardRuleTriggered } = computePitchReadiness(dimensions, state.coherenceRows);
-  const actions = deriveActions(state.comments, state.coherenceRows, dimensions, state.locale);
+  const derivedActions = deriveActions(state.comments, state.coherenceRows, dimensions, state.locale);
+  const { actions, resolvedActions } = await verifyPriorDoneActions(pitch, state.priorDoneActions, derivedActions);
 
   const run: PitchRun = {
     pitchId: pitch.id,
@@ -304,9 +371,11 @@ export async function readinessNode(state: PitchValidationStateType) {
     coherence: state.coherenceRows,
     dimensions,
     actions,
+    resolvedActions,
     readinessScore,
     verdict,
     hardRuleTriggered,
+    deckVersion: currentPitch.deckVersion,
     createdAt: new Date().toISOString(),
   };
   await savePitchRun(run);

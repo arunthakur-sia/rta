@@ -291,11 +291,18 @@ export interface MockJuryTurn {
   answeredAt: string | null;
 }
 
+export type ActionVerification = "resolved" | "unresolved" | null;
+
 export interface ReadinessAction {
   priority: number;
   text: string;
-  link: string; // slide:n | jury:n
+  link: string; // slide:n | jury:n | dimension:<name>
+  dimension: PitchDimensionName | null;
   done: boolean;
+  /** Set by the readiness node on a re-run, when this action (or the one it replaces) was
+   * previously marked done: whether the updated deck actually addresses it. Null means it
+   * hasn't been checked yet (a first run, or a newly-raised action). */
+  verification: ActionVerification;
 }
 
 export interface PitchRun {
@@ -310,9 +317,15 @@ export interface PitchRun {
   // readiness scoring run.
   dimensions: PitchDimensionRating[] | null;
   actions: ReadinessAction[] | null;
+  /** Actions carried from the previous run that were marked done and confirmed fixed against
+   * this run's deck — kept separately so they stay visible after dropping out of `actions`. */
+  resolvedActions: ReadinessAction[] | null;
   readinessScore: number | null; // computed in app code
   verdict: PitchVerdict | null; // computed in app code
   hardRuleTriggered: string | null;
+  /** pitches.deck_version at the time this run analyzed the deck — lets a re-run be blocked
+   * until a newer deck has actually been uploaded. */
+  deckVersion: number;
   createdAt: string;
 }
 
@@ -320,6 +333,7 @@ export interface PitchRun {
 export type ScoredPitchRun = PitchRun & {
   dimensions: PitchDimensionRating[];
   actions: ReadinessAction[];
+  resolvedActions: ReadinessAction[];
   readinessScore: number;
   verdict: PitchVerdict;
 };
@@ -330,6 +344,8 @@ export interface Pitch {
   ownerId: string;
   deckFileName: string | null;
   deckStoragePath: string | null;
+  /** Bumped on every deck upload — lets a re-run be gated on a newer deck actually existing. */
+  deckVersion: number;
   slides: Slide[];
   parseConfirmed: boolean;
   script: string | null;
