@@ -56,9 +56,9 @@ export const pitchRubric: PitchRubricDimension[] = [
 ];
 
 export const pitchVerdictThresholds = {
-  readyForDemoDay: { min: 3.8, max: 5.0 },
-  rehearse: { min: 2.8, max: 3.7 },
-  rework: { min: 1.0, max: 2.7 },
+  readyForDemoDay: { min: 3.0, max: 5.0 },
+  rehearse: { min: 2.0, max: 2.9 },
+  rework: { min: 1.0, max: 1.9 },
 };
 
 export const pitchTemplateSections: PitchTemplateSection[] = [

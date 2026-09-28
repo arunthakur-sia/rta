@@ -38,12 +38,12 @@ export function computePitchReadiness(
   const byName = new Map(dimensions.map((d) => [d.name, d]));
 
   const readinessScoreRaw = pitchRubric.reduce((sum, dim) => {
-    const rating = byName.get(dim.name)?.rating ?? 1;
+    const rating = byName.get(dim.name)?.rating ?? 3;
     return sum + dim.weight * rating;
   }, 0);
   const readinessScore = Math.round(readinessScoreRaw * 100) / 100;
 
-  const delivery = byName.get("delivery_timing")?.rating ?? 1;
+  const delivery = byName.get("delivery_timing")?.rating ?? 3;
 
   if (hasHighPriorityCoherenceFlag(coherenceRows)) {
     return {
@@ -53,18 +53,18 @@ export function computePitchReadiness(
     };
   }
 
-  if (readinessScore >= 3.8) {
-    if (delivery < 3) {
-      return { readinessScore, verdict: "rehearse", hardRuleTriggered: "delivery_below_3_forces_rehearse" };
+  if (readinessScore >= 3.0) {
+    if (delivery < 2) {
+      return { readinessScore, verdict: "rehearse", hardRuleTriggered: "delivery_below_2_forces_rehearse" };
     }
     return { readinessScore, verdict: "ready_for_demo_day", hardRuleTriggered: null };
   }
 
-  if (readinessScore >= 2.8) {
+  if (readinessScore >= 2.0) {
     return {
       readinessScore,
       verdict: "rehearse",
-      hardRuleTriggered: delivery < 3 ? "delivery_below_3_forces_rehearse" : null,
+      hardRuleTriggered: delivery < 2 ? "delivery_below_2_forces_rehearse" : null,
     };
   }
 

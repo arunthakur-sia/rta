@@ -137,7 +137,7 @@ export async function coherenceNode(state: PitchValidationStateType) {
 
   const result = await runStructured({
     model: CAPABLE_MODEL,
-    system: `${roleAndBoundaries(state.locale)}\n\nCurrent stage: COHERENCE. Extract every factual claim in the deck (numbers, user counts, test results, outcomes) and check it against the validated idea record below. Mark each: supported (matches the record), overstated (stronger than the evidence), changed (a number moved without explanation), or unsupported (no basis in the record at all). This is what makes the two agents a system rather than two tools — be strict.`,
+    system: `${roleAndBoundaries(state.locale)}\n\nCurrent stage: COHERENCE. Extract every factual claim in the deck (numbers, user counts, test results, outcomes) and check it against the validated idea record below. Mark each: supported (matches the record), overstated (stronger than the evidence), changed (a number moved without explanation), or unsupported (no basis in the record at all). This is a workshop pitch, not a due-diligence audit — reasonable rounding, paraphrasing, or a plausible extrapolation the participant could explain counts as supported. Reserve overstated/unsupported for claims that genuinely have no basis in the record or clearly contradict it.`,
     cacheableSystem: pitchSkillsBlock(state.locale),
     messages: [{ role: "user", content: `${deckContext(pitch)}\n\n${ideaRecordSummary(idea, assessment, plan)}` }],
     schema: coherenceOutputSchema,
@@ -341,7 +341,7 @@ export async function readinessNode(state: PitchValidationStateType) {
 
   const result = await runStructured({
     model: CAPABLE_MODEL,
-    system: `${roleAndBoundaries(state.locale)}\n\nCurrent stage: READINESS. Rate all seven pitch rubric dimensions 1-5 with a written anchor and evidence, drawing on the structure, content and coherence findings plus the mock jury log below.`,
+    system: `${roleAndBoundaries(state.locale)}\n\nCurrent stage: READINESS. Rate all seven pitch rubric dimensions 1-5 with a written anchor and evidence, drawing on the structure, content and coherence findings plus the mock jury log below. This is a workshop setting, not a demo-day gate — give the participant the benefit of the doubt: where the deck shows a reasonable, plausible attempt at a dimension, rate it favorably rather than withholding points for polish a team would only add after more rehearsal. Reserve low ratings for dimensions the deck genuinely leaves blank or contradicts.`,
     cacheableSystem: pitchSkillsBlock(state.locale),
     messages: [
       {
