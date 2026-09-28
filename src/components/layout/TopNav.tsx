@@ -60,7 +60,17 @@ export function TopNav({ currentUser }: { currentUser: User | null }) {
           <LanguageSwitcher />
           {currentUser && (
             <>
-              <span className="hidden text-sm text-ink-600 sm:inline">{currentUser.name}</span>
+              <span className="hidden items-center gap-1.5 text-sm text-ink-600 sm:inline-flex">
+                {currentUser.name}
+                {/* Display label only — this app has a single account type (see
+                    supabase/migrations/0005_single_participant_role.sql), so this is just
+                    wording, not a role: every non-admin account reads "Moderator" here. */}
+                {!currentUser.isAdmin && (
+                  <span className="rounded-full bg-accent-100 px-2 py-0.5 text-xs font-medium text-accent-700">
+                    {t(common.moderator, locale)}
+                  </span>
+                )}
+              </span>
               <button
                 type="button"
                 onClick={signOut}
